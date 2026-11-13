@@ -3,7 +3,7 @@
   "id": "cobblephase",
   "version": "${version}",
   "name": "Cobblephase",
-  "description": "Adds /phase <habitat> to show a Cobblemon habitat's current spawn phase.",
+  "description": "Server-side Cobblemon helpers: /phase <habitat> shows a habitat's spawn phase, and the Trainer PDA pings you when Pokémon you want are nearby.",
   "authors": ["grunclepug"],
   "contact": {
     "sources": "https://github.com/GrunclePug/cobblephase"
@@ -13,9 +13,10 @@
   "entrypoints": {
     "main": ["com.grunclepug.cobblephase.Cobblephase"]
   },
+  "mixins": ["cobblephase.mixins.json"],
   "depends": {
     "fabricloader": ">=0.16.0",
-    "fabric-command-api-v2": "*",
+    "fabric-api": "*",
     "minecraft": "~1.21.1",
     "java": ">=21",
     "cobblemon": ">=1.8.0"

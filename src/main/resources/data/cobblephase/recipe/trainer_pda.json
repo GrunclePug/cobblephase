@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "equipment",
+  "pattern": [
+    " R ",
+    "RCR",
+    " P "
+  ],
+  "key": {
+    "R": { "item": "minecraft:redstone" },
+    "C": { "item": "minecraft:compass" },
+    "P": { "tag": "cobblemon:tier_1_poke_balls" }
+  },
+  "result": {
+    "id": "minecraft:compass",
+    "count": 1,
+    "components": {
+      "minecraft:custom_data": { "cobblephase": "pda" },
+      "minecraft:custom_name": "{\"text\":\"Trainer PDA\",\"color\":\"aqua\",\"italic\":false}",
+      "minecraft:lore": [
+        "{\"text\":\"Pings you when Pokémon you want are nearby.\",\"color\":\"gray\",\"italic\":false}",
+        "{\"text\":\"Right-click: open. Sneak + right-click: next result.\",\"color\":\"gray\",\"italic\":false}"
+      ],
+      "minecraft:lodestone_tracker": { "tracked": false }
+    }
+  }
+}
