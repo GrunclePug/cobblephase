@@ -112,6 +112,13 @@ public final class PdaMenu extends ChestMenu {
         return true;
     }
 
+    /** Called after each scan so the home screen's nearby list stays current while open. */
+    void refreshResults() {
+        if (screen == Screen.HOME) {
+            render();
+        }
+    }
+
     // Rendering
 
     private void render() {

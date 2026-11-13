@@ -59,8 +59,12 @@ public final class PdaTracker {
             if (rule.shinyOnly() && !pokemon.getShiny()) {
                 return false;
             }
-            if (!buckets.isEmpty() && !buckets.contains(entity.getAttached(Pda.SPAWN_BUCKET))) {
-                return false;
+            if (!buckets.isEmpty()) {
+                // Pokémon from fishing, commands or before this mod have no bucket; Set.copyOf rejects null lookups.
+                String bucket = entity.getAttached(Pda.SPAWN_BUCKET);
+                if (bucket == null || !buckets.contains(bucket)) {
+                    return false;
+                }
             }
             if (species.isEmpty() && labels.isEmpty()) {
                 return true;
@@ -84,7 +88,7 @@ public final class PdaTracker {
         UUID selected;
         UUID needleEntity;
         GlobalPos needle;
-        long lastUse = Long.MIN_VALUE;
+        long lastUse = -USE_DEBOUNCE;
         PdaSettings compiledFor;
         List<Matcher> matchers = List.of();
 
@@ -178,20 +182,22 @@ public final class PdaTracker {
             ping(player, settings, fresh);
         }
 
-        // One result per species, with shinies kept apart so a nearby normal one can't hide them.
+        // The closest of each species, with shinies kept apart so a nearby normal one can't hide them.
         Map<String, Result> best = new LinkedHashMap<>();
-        matches.sort(byPriority);
+        matches.sort(Comparator.comparingDouble(r -> r.entity().distanceToSqr(player)));
         for (Result result : matches) {
             Pokemon pokemon = result.entity().getPokemon();
             best.putIfAbsent(pokemon.getSpecies().getResourceIdentifier() + (pokemon.getShiny() ? "#shiny" : ""), result);
         }
         List<Result> results = new ArrayList<>(best.values());
-        results.sort(Comparator.comparingDouble(r -> r.entity().distanceToSqr(player)));
         state.results = List.copyOf(results);
         if (indexOf(results, state.selected) < 0) {
             state.selected = results.isEmpty() ? null : results.getFirst().entity().getUUID();
         }
         updateNeedle(player, state);
+        if (player.containerMenu instanceof PdaMenu menu) {
+            menu.refreshResults();
+        }
     }
 
     private static void ping(ServerPlayer player, PdaSettings settings, List<Result> fresh) {

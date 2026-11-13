@@ -3,6 +3,7 @@ package com.grunclepug.cobblephase.pda;
 import com.mojang.serialization.Codec;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -66,6 +67,11 @@ public final class Pda {
             PdaSearch.forget(handler.player);
         });
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(PdaSearch::onChat);
+        ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
+            if (entity instanceof ServerPlayer player) {
+                PdaSearch.forget(player);
+            }
+        });
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> PdaCatalog.invalidate());
     }
 
@@ -82,6 +88,8 @@ public final class Pda {
         if (!PdaTracker.claimUse(player)) {
             return;
         }
+        // Reopening the PDA abandons a pending chat search, so it can't land on a rule that has since moved.
+        PdaSearch.forget(player);
         if (player.isShiftKeyDown()) {
             PdaTracker.cycle(player);
         } else {
