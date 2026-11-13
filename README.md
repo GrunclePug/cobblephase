@@ -18,6 +18,7 @@ players don't need to install it.
 * **Full ids**: also accepts the `/locate structure` form, `cobblemon:habitats/flowerbed_clearing`.
 * **Trainer PDA**: a craftable gadget that pings you when wild Pokémon matching your rules are nearby.
 * **Ping rules**: match by species, group (legendary, mythical, ultra beast, paradox), spawn rarity and shininess, each with its own sound.
+* **Proximity beeps**: the selected match's sound repeats faster as you get closer.
 * **Needle and results**: the PDA's needle points at the selected match, and holding it lists every match with direction, distance and height.
 * **Addon species**: reads Cobblemon's live species and spawn rarity lists, so datapack and addon Pokémon work too.
 * **Server-side only**: vanilla command syntax and vanilla menus, so clients need nothing beyond Cobblemon.
@@ -76,6 +77,10 @@ rule's sound, from the Pokémon's direction, and get a chat line:
 ```
 [PDA] Shiny Eevee · Rare · 42m NE (120, 64, -340)
 ```
+
+The sound then repeats for the selected result (the one the needle points at), faster the closer you get: about
+every 5 seconds at the edge of your range, down to every 0.4 seconds when it's next to you. The menu's **Repeat**
+button switches between always, only while the PDA is held, and off (a single ping when found).
 
 While you hold the PDA, the bar above the hotbar lists matches as `▶ ↗ Eevee 42m · ← Pikachu 80m ▼12`: the arrow
 is relative to where you're facing and `▲`/`▼` shows the height difference. Only the closest of each species is

@@ -195,6 +195,13 @@ public final class PdaMenu extends ChestMenu {
         }
         set(47, icon(Items.SPYGLASS, text("Range: " + settings.radius() + " blocks", ChatFormatting.AQUA),
             List.of(hint("Click to change")), false), right -> Pda.save(player, Pda.settings(player).nextRadius()));
+        set(48, icon(Items.REPEATER, text("Repeat: " + settings.repeat().displayName, ChatFormatting.AQUA), List.of(
+            hint("The selected result's sound repeats,"),
+            hint("faster the closer you get."),
+            text("Always: while the PDA is in your inventory", ChatFormatting.DARK_GRAY),
+            text("While held: only with it in your hand", ChatFormatting.DARK_GRAY),
+            text("Off: one ping when found", ChatFormatting.DARK_GRAY),
+            hint("Click to change")), false), right -> Pda.save(player, Pda.settings(player).nextRepeat()));
         set(49, icon(settings.muted() ? Items.GRAY_DYE : Items.LIME_DYE,
             text(settings.muted() ? "Pings: muted" : "Pings: on", settings.muted() ? ChatFormatting.RED : ChatFormatting.GREEN),
             List.of(hint("Click to " + (settings.muted() ? "unmute" : "mute")),

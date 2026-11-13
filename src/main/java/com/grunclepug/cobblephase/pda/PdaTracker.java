@@ -34,6 +34,12 @@ public final class PdaTracker {
     /** A Pokémon out of range this long pings again when it comes back. */
     private static final long SEEN_EXPIRY = 60 * 20;
     private static final int USE_DEBOUNCE = 3;
+    /** Repeat interval in ticks: fastest within {@link #BEEP_NEAR} blocks, slowest at the edge of the range. */
+    private static final int BEEP_FASTEST = 8;
+    private static final int BEEP_SLOWEST = 100;
+    private static final double BEEP_NEAR = 4.0;
+    /** Pause before the first repeat after a ping or a new selection. */
+    private static final int BEEP_AFTER_SELECT = 10;
     private static final int MAX_CHAT_LINES = 3;
     private static final int BAR_ENTRIES = 4;
     private static final int SHOW_HEIGHT_FROM = 4;
@@ -89,6 +95,7 @@ public final class PdaTracker {
         UUID needleEntity;
         GlobalPos needle;
         long lastUse = -USE_DEBOUNCE;
+        long nextBeep;
         PdaSettings compiledFor;
         List<Matcher> matchers = List.of();
 
@@ -125,7 +132,29 @@ public final class PdaTracker {
             if (phase % BAR_INTERVAL == 0 && PdaItem.held(player)) {
                 actionBar(player);
             }
+            beep(player, now);
         }
+    }
+
+    /** Repeats the selected result's sound, more often the closer it is, like a metal detector. */
+    private static void beep(ServerPlayer player, long now) {
+        State state = STATES.get(player.getUUID());
+        if (state == null || state.selected == null || now < state.nextBeep) {
+            return;
+        }
+        PdaSettings settings = Pda.settings(player);
+        Result selected = selected(state);
+        if (selected == null || settings.muted() || settings.repeat() == PdaSettings.Repeat.OFF
+            || (settings.repeat() == PdaSettings.Repeat.HELD && !PdaItem.held(player))) {
+            return;
+        }
+        settings.soundFor(selected.rule()).play(player, selected.entity().position());
+        state.nextBeep = now + beepInterval(Math.sqrt(selected.entity().distanceToSqr(player)), settings.radius());
+    }
+
+    private static int beepInterval(double distance, int radius) {
+        double t = Mth.clamp((distance - BEEP_NEAR) / (radius - BEEP_NEAR), 0.0, 1.0);
+        return (int) Math.round(Mth.lerp(t, BEEP_FASTEST, BEEP_SLOWEST));
     }
 
     /** True once per click: block use, item use and both hands can all fire for one right-click. */
@@ -180,6 +209,7 @@ public final class PdaTracker {
         if (!fresh.isEmpty() && !settings.muted()) {
             fresh.sort(byPriority);
             ping(player, settings, fresh);
+            state.nextBeep = now + BEEP_AFTER_SELECT;
         }
 
         // The closest of each species, with shinies kept apart so a nearby normal one can't hide them.
@@ -202,7 +232,7 @@ public final class PdaTracker {
 
     private static void ping(ServerPlayer player, PdaSettings settings, List<Result> fresh) {
         Result first = fresh.getFirst();
-        PdaSound.byId(settings.rules().get(first.rule()).sound()).play(player, first.entity().position());
+        settings.soundFor(first.rule()).play(player, first.entity().position());
         for (int i = 0; i < Math.min(MAX_CHAT_LINES, fresh.size()); i++) {
             player.sendSystemMessage(pingLine(player, fresh.get(i).entity()));
         }
@@ -262,6 +292,7 @@ public final class PdaTracker {
     static void select(ServerPlayer player, UUID entity) {
         State state = state(player);
         state.selected = entity;
+        state.nextBeep = player.server.getTickCount() + BEEP_AFTER_SELECT;
         updateNeedle(player, state);
         player.playNotifySound(SoundEvents.UI_BUTTON_CLICK.value(), SoundSource.MASTER, 0.5f, 1.4f);
         if (PdaItem.held(player)) {
