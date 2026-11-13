@@ -1,5 +1,8 @@
 package com.grunclepug.cobblephase.pda;
 
+import com.cobblemon.mod.common.Cobblemon;
+import com.cobblemon.mod.common.api.pokedex.AbstractPokedexManager;
+import com.cobblemon.mod.common.api.pokedex.PokedexEntryProgress;
 import com.cobblemon.mod.common.entity.pokemon.PokemonEntity;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.pokemon.Species;
@@ -61,8 +64,12 @@ public final class PdaTracker {
                 Set.copyOf(rule.buckets()));
         }
 
-        boolean matches(PokemonEntity entity, Pokemon pokemon) {
+        boolean matches(PokemonEntity entity, Pokemon pokemon, AbstractPokedexManager pokedex) {
             if (rule.shinyOnly() && !pokemon.getShiny()) {
+                return false;
+            }
+            if (rule.uncaughtOnly()
+                && pokedex.getKnowledgeForSpecies(pokemon.getSpecies().getResourceIdentifier()) == PokedexEntryProgress.OWNED) {
                 return false;
             }
             if (!buckets.isEmpty()) {
@@ -188,12 +195,13 @@ public final class PdaTracker {
             entity -> entity.isAlive() && !entity.isBattling() && entity.getPokemon().isWild()
                 && entity.distanceToSqr(player) <= radiusSq);
 
+        AbstractPokedexManager pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
         List<Result> matches = new ArrayList<>();
         List<Result> fresh = new ArrayList<>();
         for (PokemonEntity entity : nearby) {
             Pokemon pokemon = entity.getPokemon();
             for (Matcher matcher : matchers) {
-                if (matcher.matches(entity, pokemon)) {
+                if (matcher.matches(entity, pokemon, pokedex)) {
                     Result result = new Result(entity, matcher.index());
                     matches.add(result);
                     if (state.seen.put(entity.getUUID(), now) == null) {

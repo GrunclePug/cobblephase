@@ -17,10 +17,11 @@ players don't need to install it.
 * **Autocomplete**: suggests every loaded habitat as you type, including habitats added by datapacks.
 * **Full ids**: also accepts the `/locate structure` form, `cobblemon:habitats/flowerbed_clearing`.
 * **Trainer PDA**: a craftable gadget that pings you when wild Pokémon matching your rules are nearby.
-* **Ping rules**: match by species, group (legendary, mythical, ultra beast, paradox), spawn rarity and shininess, each with its own sound.
+* **Ping rules**: match by species, group (legendary, mythical, ultra beast, paradox), spawn rarity, shininess and "not caught yet", each with its own sound.
 * **Proximity beeps**: the selected match's sound repeats faster as you get closer.
 * **Needle and results**: the PDA's needle points at the selected match, and holding it lists every match with direction, distance and height.
 * **Addon species**: reads Cobblemon's live species and spawn rarity lists, so datapack and addon Pokémon work too.
+* **Catch news**: tells everyone online when someone catches a shiny or the server's first of a species.
 * **Server-side only**: vanilla command syntax and vanilla menus, so clients need nothing beyond Cobblemon.
 
 ## Installation
@@ -95,9 +96,12 @@ Open the menu and pick **New rule**. A Pokémon matches a rule when it matches e
 - **Rarity**: the spawn bucket it spawned from (common, uncommon, rare, ultra-rare, boss, plus any the server
   adds). None chosen means any rarity.
 - **Shiny only**.
+- **Not caught yet**: only species missing from your own Pokédex. On its own, it pings for every species you
+  still need.
 
 Each rule has its own sound. Rules are checked top to bottom and the first match decides the sound. The menu also
-sets the range (32 to 128 blocks), mutes pings, and lists nearby matches; click one to point the needle at it.
+sets the range (32 to 128 blocks), mutes pings, turns catch news on or off, and lists nearby matches; click one to
+point the needle at it.
 Rules are saved on the player, so they survive death and a lost PDA.
 
 Rarity is recorded when Cobblemon spawns a Pokémon, from natural spawning and habitats. Pokémon from fishing, bait
@@ -110,6 +114,19 @@ game time, not time of day, so `/time set`, `/time add` and sleeping don't chang
 
 The command assumes the habitat's default "simple" phase order. A habitat block switched to a random phase order
 shuffles its phases by position, so it won't match.
+
+## Catch news
+
+When someone catches a shiny, or a species nobody on the server has caught before, everyone online gets a chat
+line; hover the Pokémon's name for its level, nature and ability:
+
+```
+★ Oddie caught a Shiny Gible!
+[Catch] moomoocat28 caught the server's first Dratini!
+```
+
+On first start the mod reads every known player's Pokédex, so species caught before it was installed don't count
+as firsts. Each player can turn the news off with **Catch news** in the PDA menu.
 
 ## Development
 

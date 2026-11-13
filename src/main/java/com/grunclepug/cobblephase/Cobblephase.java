@@ -11,6 +11,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import com.grunclepug.cobblephase.news.CatchNews;
 import com.grunclepug.cobblephase.pda.Pda;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -37,6 +38,7 @@ public final class Cobblephase implements ModInitializer {
     public void onInitialize() {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> register(dispatcher));
         Pda.init();
+        CatchNews.init();
     }
 
     private static void register(CommandDispatcher<CommandSourceStack> dispatcher) {

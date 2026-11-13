@@ -8,14 +8,16 @@ import net.minecraft.resources.ResourceLocation;
 
 /**
  * One notification rule. A Pokémon matches when it is one of {@code species} or carries one of {@code labels}
- * (either list may be empty), it came from one of {@code buckets} (empty means any rarity) and, if
- * {@code shinyOnly}, it is shiny. Unknown species, labels or buckets are kept so a datapack change can't wipe them.
+ * (either list may be empty), it came from one of {@code buckets} (empty means any rarity), if {@code shinyOnly}
+ * it is shiny, and if {@code uncaughtOnly} the player hasn't caught its species yet (per their Pokédex).
+ * Unknown species, labels or buckets are kept so a datapack change can't wipe them.
  */
 public record PdaRule(
     List<ResourceLocation> species,
     List<String> labels,
     List<String> buckets,
     boolean shinyOnly,
+    boolean uncaughtOnly,
     String sound,
     boolean enabled
 ) {
@@ -24,6 +26,7 @@ public record PdaRule(
         Codec.STRING.listOf().optionalFieldOf("labels", List.of()).forGetter(PdaRule::labels),
         Codec.STRING.listOf().optionalFieldOf("buckets", List.of()).forGetter(PdaRule::buckets),
         Codec.BOOL.optionalFieldOf("shiny_only", false).forGetter(PdaRule::shinyOnly),
+        Codec.BOOL.optionalFieldOf("uncaught_only", false).forGetter(PdaRule::uncaughtOnly),
         Codec.STRING.optionalFieldOf("sound", PdaSound.DEFAULT.id).forGetter(PdaRule::sound),
         Codec.BOOL.optionalFieldOf("enabled", true).forGetter(PdaRule::enabled)
     ).apply(i, PdaRule::new));
@@ -35,12 +38,12 @@ public record PdaRule(
     }
 
     public static PdaRule empty() {
-        return new PdaRule(List.of(), List.of(), List.of(), false, PdaSound.DEFAULT.id, true);
+        return new PdaRule(List.of(), List.of(), List.of(), false, false, PdaSound.DEFAULT.id, true);
     }
 
     /** A rule with no criteria at all would match every wild Pokémon, so it matches nothing instead. */
     public boolean complete() {
-        return !species.isEmpty() || !labels.isEmpty() || !buckets.isEmpty() || shinyOnly;
+        return !species.isEmpty() || !labels.isEmpty() || !buckets.isEmpty() || shinyOnly || uncaughtOnly;
     }
 
     public boolean active() {
@@ -48,7 +51,7 @@ public record PdaRule(
     }
 
     public PdaRule withSpecies(List<ResourceLocation> value) {
-        return new PdaRule(value, labels, buckets, shinyOnly, sound, enabled);
+        return new PdaRule(value, labels, buckets, shinyOnly, uncaughtOnly, sound, enabled);
     }
 
     public PdaRule toggleSpecies(ResourceLocation id) {
@@ -56,23 +59,27 @@ public record PdaRule(
     }
 
     public PdaRule toggleLabel(String label) {
-        return new PdaRule(species, toggled(labels, label), buckets, shinyOnly, sound, enabled);
+        return new PdaRule(species, toggled(labels, label), buckets, shinyOnly, uncaughtOnly, sound, enabled);
     }
 
     public PdaRule toggleBucket(String bucket) {
-        return new PdaRule(species, labels, toggled(buckets, bucket), shinyOnly, sound, enabled);
+        return new PdaRule(species, labels, toggled(buckets, bucket), shinyOnly, uncaughtOnly, sound, enabled);
     }
 
     public PdaRule withShinyOnly(boolean value) {
-        return new PdaRule(species, labels, buckets, value, sound, enabled);
+        return new PdaRule(species, labels, buckets, value, uncaughtOnly, sound, enabled);
+    }
+
+    public PdaRule withUncaughtOnly(boolean value) {
+        return new PdaRule(species, labels, buckets, shinyOnly, value, sound, enabled);
     }
 
     public PdaRule withSound(String value) {
-        return new PdaRule(species, labels, buckets, shinyOnly, value, enabled);
+        return new PdaRule(species, labels, buckets, shinyOnly, uncaughtOnly, value, enabled);
     }
 
     public PdaRule withEnabled(boolean value) {
-        return new PdaRule(species, labels, buckets, shinyOnly, sound, value);
+        return new PdaRule(species, labels, buckets, shinyOnly, uncaughtOnly, sound, value);
     }
 
     private static <T> List<T> toggled(List<T> list, T value) {

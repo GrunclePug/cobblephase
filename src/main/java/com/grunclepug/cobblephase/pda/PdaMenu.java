@@ -1,5 +1,6 @@
 package com.grunclepug.cobblephase.pda;
 
+import com.cobblemon.mod.common.CobblemonItems;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.item.PokemonItem;
 import com.cobblemon.mod.common.pokemon.Species;
@@ -207,6 +208,12 @@ public final class PdaMenu extends ChestMenu {
             List.of(hint("Click to " + (settings.muted() ? "unmute" : "mute")),
                 text("Muted still tracks and points, without sounds or chat.", ChatFormatting.DARK_GRAY)), false),
             right -> Pda.save(player, Pda.settings(player).withMuted(!Pda.settings(player).muted())));
+        set(50, icon(Items.FIREWORK_ROCKET,
+            text(settings.announcements() ? "Catch news: on" : "Catch news: off",
+                settings.announcements() ? ChatFormatting.GREEN : ChatFormatting.RED),
+            List.of(hint("Chat news when anyone catches a shiny"), hint("or the server's first of a species."),
+                hint("Click to turn " + (settings.announcements() ? "off" : "on"))), false),
+            right -> Pda.save(player, Pda.settings(player).withAnnouncements(!Pda.settings(player).announcements())));
         set(51, icon(Items.BOOK, text("How it works", ChatFormatting.GOLD), List.of(
             hint("Right-click the PDA: open this menu"),
             hint("Sneak + right-click: point at the next result"),
@@ -221,7 +228,8 @@ public final class PdaMenu extends ChestMenu {
         header.add(Component.empty());
         header.add(hint("A Pokémon pings when it matches all of:"));
         header.add(hint("  a chosen Pokémon or group (if any),"));
-        header.add(hint("  a chosen rarity (if any), and shiny (if on)."));
+        header.add(hint("  a chosen rarity (if any), shiny and"));
+        header.add(hint("  not caught yet (if on)."));
         set(4, icon(ruleIcon(r), ruleTitle(rule, r), header, false), null);
 
         Species first = firstSpecies(r);
@@ -255,12 +263,16 @@ public final class PdaMenu extends ChestMenu {
                 right -> update(rule, x -> x.toggleBucket(bucket)));
         }
 
-        set(29, icon(Items.NETHER_STAR, toggleTitle("Shiny only", r.shinyOnly()), List.of(), r.shinyOnly()),
+        set(28, icon(Items.NETHER_STAR, toggleTitle("Shiny only", r.shinyOnly()), List.of(), r.shinyOnly()),
             right -> update(rule, x -> x.withShinyOnly(!x.shinyOnly())));
+        set(30, icon(CobblemonItems.POKEDEX_RED, toggleTitle("Not caught yet", r.uncaughtOnly()),
+            List.of(hint("Only species missing from your Pokédex"),
+                text("On its own: pings for every species you still need", ChatFormatting.DARK_GRAY)), r.uncaughtOnly()),
+            right -> update(rule, x -> x.withUncaughtOnly(!x.uncaughtOnly())));
         PdaSound sound = PdaSound.byId(r.sound());
-        set(31, icon(sound.icon, text("Sound: " + sound.displayName, ChatFormatting.AQUA),
+        set(32, icon(sound.icon, text("Sound: " + sound.displayName, ChatFormatting.AQUA),
             List.of(hint("Click to choose")), false), right -> screen = Screen.SOUND);
-        set(33, icon(r.enabled() ? Items.LIME_DYE : Items.GRAY_DYE,
+        set(34, icon(r.enabled() ? Items.LIME_DYE : Items.GRAY_DYE,
             text(r.enabled() ? "Rule: on" : "Rule: off", r.enabled() ? ChatFormatting.GREEN : ChatFormatting.RED),
             List.of(hint("Click to turn " + (r.enabled() ? "off" : "on"))), false),
             right -> update(rule, x -> x.withEnabled(!x.enabled())));
@@ -412,6 +424,9 @@ public final class PdaMenu extends ChestMenu {
         if (r.shinyOnly()) {
             return new ItemStack(Items.NETHER_STAR);
         }
+        if (r.uncaughtOnly()) {
+            return new ItemStack(CobblemonItems.POKEDEX_RED);
+        }
         if (!r.labels().isEmpty()) {
             for (PdaCatalog.Label label : PdaCatalog.LABELS) {
                 if (r.labels().contains(label.id())) {
@@ -458,9 +473,12 @@ public final class PdaMenu extends ChestMenu {
         if (r.shinyOnly()) {
             lines.add(text("Shiny only", ChatFormatting.GOLD));
         }
+        if (r.uncaughtOnly()) {
+            lines.add(text("Not caught yet", ChatFormatting.LIGHT_PURPLE));
+        }
         lines.add(text("Sound: " + PdaSound.byId(r.sound()).displayName, ChatFormatting.GRAY));
         if (!r.complete()) {
-            lines.add(text("Choose a Pokémon, group, rarity or shiny to start pinging.", ChatFormatting.YELLOW));
+            lines.add(text("Choose a Pokémon, group, rarity, shiny or not caught yet to start pinging.", ChatFormatting.YELLOW));
         }
         return lines;
     }
