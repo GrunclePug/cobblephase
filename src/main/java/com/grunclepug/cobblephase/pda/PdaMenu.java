@@ -153,6 +153,18 @@ public final class PdaMenu extends ChestMenu {
         }
     }
 
+    /** Re-renders the player's open PDA menu if it shows one of {@code screens}, so no button acts on stale data. */
+    public static void refreshIfShowing(ServerPlayer player, Screen... screens) {
+        if (player.containerMenu instanceof PdaMenu menu) {
+            for (Screen screen : screens) {
+                if (menu.view.screen == screen) {
+                    menu.render();
+                    return;
+                }
+            }
+        }
+    }
+
     private void render() {
         buttons.clear();
         for (int i = 0; i < SIZE; i++) {

@@ -3,6 +3,7 @@ package com.grunclepug.cobblephase.habitat;
 import com.cobblemon.mod.common.api.habitats.HabitatPool;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.pokemon.Species;
+import com.grunclepug.cobblephase.pda.PdaMenu;
 import com.grunclepug.cobblephase.pda.PdaSound;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -47,6 +48,13 @@ public final class HabitatReminders {
         return get(player).contains(reminder);
     }
 
+    public static void remove(ServerPlayer player, Reminder reminder) {
+        List<Reminder> list = new ArrayList<>(get(player));
+        if (list.remove(reminder)) {
+            player.setAttached(REMINDERS, List.copyOf(list));
+        }
+    }
+
     /** Adds or removes a reminder; false when adding would pass the limit. */
     public static boolean toggle(ServerPlayer player, Reminder reminder) {
         List<Reminder> list = new ArrayList<>(get(player));
@@ -72,26 +80,37 @@ public final class HabitatReminders {
             return;
         }
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            List<Reminder> reminders = get(player);
-            if (reminders.isEmpty()) {
-                continue;
+            check(player, day);
+        }
+    }
+
+    /** A player joining mid-phase hears about a window that opened while they were away. */
+    public static void onJoin(ServerPlayer player) {
+        check(player, HabitatPhases.day(HabitatPhases.gameTime(player.server)));
+    }
+
+    /** Fires and removes the player's reminders whose habitat allows the spawn on {@code day}. */
+    private static void check(ServerPlayer player, long day) {
+        List<Reminder> reminders = get(player);
+        if (reminders.isEmpty()) {
+            return;
+        }
+        List<Reminder> remaining = new ArrayList<>();
+        for (Reminder reminder : reminders) {
+            HabitatPool pool = HabitatPhases.pool(reminder.pool());
+            if (pool == null) {
+                continue; // The habitat no longer exists; drop the reminder.
             }
-            List<Reminder> remaining = new ArrayList<>();
-            for (Reminder reminder : reminders) {
-                HabitatPool pool = HabitatPhases.pool(reminder.pool());
-                if (pool == null) {
-                    continue; // The habitat no longer exists; drop the reminder.
-                }
-                int phase = HabitatPhases.phaseOf(day, pool.getPhaseCount());
-                if (HabitatPhases.spawnsIn(pool, reminder.species(), phase)) {
-                    notify(player, pool, reminder.species(), phase);
-                } else {
-                    remaining.add(reminder);
-                }
+            int phase = HabitatPhases.phaseOf(day, pool.getPhaseCount());
+            if (HabitatPhases.spawnsIn(pool, reminder.species(), phase)) {
+                notify(player, pool, reminder.species(), phase);
+            } else {
+                remaining.add(reminder);
             }
-            if (remaining.size() != reminders.size()) {
-                player.setAttached(REMINDERS, List.copyOf(remaining));
-            }
+        }
+        if (remaining.size() != reminders.size()) {
+            player.setAttached(REMINDERS, List.copyOf(remaining));
+            PdaMenu.refreshIfShowing(player, PdaMenu.Screen.REMINDERS, PdaMenu.Screen.PLANNER);
         }
     }
 

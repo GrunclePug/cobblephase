@@ -90,7 +90,7 @@ final class PlannerScreens {
             menu.set(i, icon(species == null ? new ItemStack(Items.PAPER) : PokemonItem.Companion.from(species),
                 species == null ? text(reminder.species().toString(), ChatFormatting.WHITE)
                     : species.getTranslatedName().withStyle(ChatFormatting.WHITE), lore, false),
-                right -> HabitatReminders.toggle(menu.player, reminder));
+                right -> HabitatReminders.remove(menu.player, reminder));
         }
         if (reminders.isEmpty()) {
             menu.set(22, icon(Items.BELL, text("No reminders", ChatFormatting.GRAY),

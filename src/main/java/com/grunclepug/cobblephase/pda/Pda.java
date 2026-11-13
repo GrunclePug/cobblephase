@@ -72,6 +72,7 @@ public final class Pda {
             ChatPrompt.forget(handler.player);
             PdaMenu.forget(handler.player);
         });
+        ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> HabitatReminders.onJoin(handler.player));
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(ChatPrompt::onChat);
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (entity instanceof ServerPlayer player) {

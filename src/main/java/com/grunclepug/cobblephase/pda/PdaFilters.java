@@ -1,5 +1,6 @@
 package com.grunclepug.cobblephase.pda;
 
+import com.cobblemon.mod.common.api.abilities.Ability;
 import com.cobblemon.mod.common.api.abilities.PotentialAbility;
 import com.cobblemon.mod.common.api.pokemon.stats.Stat;
 import com.cobblemon.mod.common.api.types.ElementalType;
@@ -102,15 +103,32 @@ public record PdaFilters(
         return perfect;
     }
 
-    /** Whether its ability is one of its form's hidden abilities. */
+    /**
+     * Whether its ability came from a hidden slot. Many species list the same ability as both normal and hidden
+     * (Gastly: "levitate" and "h:levitate"), so the name alone isn't enough: use the pool entry the ability was
+     * picked from, which Cobblemon records as a priority (hidden slots are LOW) and an index within it.
+     */
     private static boolean hasHiddenAbility(Pokemon pokemon) {
-        for (PotentialAbility potential : pokemon.getForm().getAbilities()) {
-            if (potential instanceof HiddenAbility
-                && potential.getTemplate().getName().equals(pokemon.getAbility().getTemplate().getName())) {
+        Ability ability = pokemon.getAbility();
+        List<PotentialAbility> slots = pokemon.getForm().getAbilities().getMapping().get(ability.getPriority());
+        if (slots == null) {
+            return false;
+        }
+        int index = ability.getIndex();
+        if (index >= 0 && index < slots.size()) {
+            PotentialAbility slot = slots.get(index);
+            return slot instanceof HiddenAbility && sameAbility(slot, ability);
+        }
+        for (PotentialAbility slot : slots) {
+            if (slot instanceof HiddenAbility && sameAbility(slot, ability)) {
                 return true;
             }
         }
         return false;
+    }
+
+    private static boolean sameAbility(PotentialAbility slot, Ability ability) {
+        return slot.getTemplate().getName().equals(ability.getTemplate().getName());
     }
 
     public PdaFilters toggleType(String type) {

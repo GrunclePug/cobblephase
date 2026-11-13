@@ -125,8 +125,8 @@ shuffles its phases by position, so it won't match.
 
 Open **Habitat planner** in the PDA menu and pick a Pokémon (only ones some habitat can spawn are listed). Each
 habitat that can spawn it shows the phases it spawns in, the current phase, and when its next window starts.
-Click a habitat to be reminded: you get a chat ping once, the next time that habitat's phase allows the spawn
-while you're online. **Your reminders** lists and removes them. Like `/phase`, it assumes a habitat's default phase
+Click a habitat to be reminded: you get a chat ping once, the next time that habitat's phase allows the spawn,
+or when you log in during such a phase. **Your reminders** lists and removes them. Like `/phase`, it assumes a habitat's default phase
 order.
 
 ## Wishboard

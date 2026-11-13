@@ -33,8 +33,9 @@ final class WishScreens {
         Wishboard board = Wishboard.get(player.server);
         List<Wishboard.Wish> wishes = board.wishes();
         long now = System.currentTimeMillis();
-        for (int i = 0; i < Math.min(PdaMenu.PAGE_SIZE, wishes.size()); i++) {
-            Wishboard.Wish wish = wishes.get(i);
+        int start = menu.pager(wishes.size());
+        for (int i = 0; i < PdaMenu.PAGE_SIZE && start + i < wishes.size(); i++) {
+            Wishboard.Wish wish = wishes.get(start + i);
             boolean mine = wish.poster().equals(player.getUUID());
             boolean confirming = wish.id().equals(view.confirmWish);
             List<Component> lore = new ArrayList<>();
