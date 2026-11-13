@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "id": "cobblephase",
+  "version": "${version}",
+  "name": "Cobblephase",
+  "description": "Adds /phase <habitat> to show a Cobblemon habitat's current spawn phase.",
+  "authors": ["grunclepug"],
+  "contact": {
+    "sources": "https://github.com/GrunclePug/cobblephase"
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.grunclepug.cobblephase.Cobblephase"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "fabric-command-api-v2": "*",
+    "minecraft": "~1.21.1",
+    "java": ">=21",
+    "cobblemon": ">=1.8.0"
+  }
+}

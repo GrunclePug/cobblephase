@@ -1,0 +1,11 @@
+.gradle/
+.kotlin/
+build/
+out/
+run/
+.idea/
+*.iml
+.vscode/
+bin/
+.env
+hs_err_*.log
