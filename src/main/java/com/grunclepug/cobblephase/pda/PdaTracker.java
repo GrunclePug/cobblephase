@@ -72,6 +72,9 @@ public final class PdaTracker {
                 && pokedex.getKnowledgeForSpecies(pokemon.getSpecies().getResourceIdentifier()) == PokedexEntryProgress.OWNED) {
                 return false;
             }
+            if (!rule.filters().matches(pokemon)) {
+                return false;
+            }
             if (!buckets.isEmpty()) {
                 // Pokémon from fishing, commands or before this mod have no bucket; Set.copyOf rejects null lookups.
                 String bucket = entity.getAttached(Pda.SPAWN_BUCKET);

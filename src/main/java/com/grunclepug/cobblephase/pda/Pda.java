@@ -1,6 +1,8 @@
 package com.grunclepug.cobblephase.pda;
 
 import com.mojang.serialization.Codec;
+import com.grunclepug.cobblephase.habitat.HabitatReminders;
+import java.util.Objects;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
@@ -31,6 +33,8 @@ public final class Pda {
     }
 
     public static void init() {
+        // Attachment types must exist before any player data loads, or their saved data is dropped.
+        Objects.requireNonNull(HabitatReminders.REMINDERS);
         // Load the spawn action now so a broken rarity mixin fails at startup rather than on the first spawn.
         try {
             Class.forName("com.cobblemon.mod.common.api.spawning.detail.SingleEntitySpawnAction", false,
@@ -60,16 +64,18 @@ public final class Pda {
         });
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             PdaTracker.tick(server);
-            PdaSearch.tick(server);
+            ChatPrompt.tick(server);
+            HabitatReminders.tick(server);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             PdaTracker.forget(handler.player);
-            PdaSearch.forget(handler.player);
+            ChatPrompt.forget(handler.player);
+            PdaMenu.forget(handler.player);
         });
-        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(PdaSearch::onChat);
+        ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(ChatPrompt::onChat);
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
             if (entity instanceof ServerPlayer player) {
-                PdaSearch.forget(player);
+                ChatPrompt.forget(player);
             }
         });
         ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> PdaCatalog.invalidate());
@@ -89,7 +95,7 @@ public final class Pda {
             return;
         }
         // Reopening the PDA abandons a pending chat search, so it can't land on a rule that has since moved.
-        PdaSearch.forget(player);
+        ChatPrompt.forget(player);
         if (player.isShiftKeyDown()) {
             PdaTracker.cycle(player);
         } else {

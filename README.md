@@ -18,6 +18,9 @@ players don't need to install it.
 * **Full ids**: also accepts the `/locate structure` form, `cobblemon:habitats/flowerbed_clearing`.
 * **Trainer PDA**: a craftable gadget that pings you when wild Pokémon matching your rules are nearby.
 * **Ping rules**: match by species, group (legendary, mythical, ultra beast, paradox), spawn rarity, shininess and "not caught yet", each with its own sound.
+* **Rule filters**: narrow a rule by type, form, nature, level range, perfect IVs and hidden ability.
+* **Habitat planner**: pick a Pokémon to see which habitats spawn it and when, and get reminded when its phase starts.
+* **Wishboard**: post the Pokémon you're looking for; whoever catches one is told who wants it.
 * **Proximity beeps**: the selected match's sound repeats faster as you get closer.
 * **Needle and results**: the PDA's needle points at the selected match, and holding it lists every match with direction, distance and height.
 * **Addon species**: reads Cobblemon's live species and spawn rarity lists, so datapack and addon Pokémon work too.
@@ -98,6 +101,9 @@ Open the menu and pick **New rule**. A Pokémon matches a rule when it matches e
 - **Shiny only**.
 - **Not caught yet**: only species missing from your own Pokédex. On its own, it pings for every species you
   still need.
+- **More filters**: types, forms (Alolan, Galarian, Mega and any others the server's species have), natures, a
+  minimum and maximum level, a minimum number of perfect (31) IVs, and hidden ability. Any filter alone is
+  enough for a rule, so "any Water type" works by itself.
 
 Each rule has its own sound. Rules are checked top to bottom and the first match decides the sound. The menu also
 sets the range (32 to 128 blocks), mutes pings, turns catch news on or off, and lists nearby matches; click one to
@@ -115,6 +121,21 @@ game time, not time of day, so `/time set`, `/time add` and sleeping don't chang
 The command assumes the habitat's default "simple" phase order. A habitat block switched to a random phase order
 shuffles its phases by position, so it won't match.
 
+## Habitat planner
+
+Open **Habitat planner** in the PDA menu and pick a Pokémon (only ones some habitat can spawn are listed). Each
+habitat that can spawn it shows the phases it spawns in, the current phase, and when its next window starts.
+Click a habitat to be reminded: you get a chat ping once, the next time that habitat's phase allows the spawn
+while you're online. **Your reminders** lists and removes them. Like `/phase`, it assumes a habitat's default phase
+order.
+
+## Wishboard
+
+**Wishboard** in the PDA menu lists the Pokémon everyone is looking for. **Post a wish** picks a species, with an
+optional shiny-only flag and a short note typed in chat. When someone else catches a match, they're told who
+wished for it, and the wisher is told who caught it, so you can sort out a trade. Each player can post 9 wishes;
+wishes expire after 14 days, and you can remove your own at any time.
+
 ## Catch news
 
 When someone catches a shiny, or a species nobody on the server has caught before, everyone online gets a chat
@@ -126,7 +147,7 @@ line; hover the Pokémon's name for its level, nature and ability:
 ```
 
 On first start the mod reads every known player's Pokédex, so species caught before it was installed don't count
-as firsts. Each player can turn the news off with **Catch news** in the PDA menu.
+as firsts. New wishes are announced the same way. Each player can turn the news off with **Catch news** in the PDA menu.
 
 ## Development
 

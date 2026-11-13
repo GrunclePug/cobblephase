@@ -3,10 +3,12 @@ package com.grunclepug.cobblephase.pda;
 import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.CobblemonItems;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
+import com.cobblemon.mod.common.pokemon.FormData;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.pokemon.Species;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -29,11 +31,16 @@ public final class PdaCatalog {
         new Label("paradox", "Paradox", Items.CLOCK));
 
     private static volatile List<Species> species;
+    private static volatile List<Form> forms;
 
     private PdaCatalog() {
     }
 
     public record Label(String id, String displayName, Item icon) {
+    }
+
+    /** A form name shared by several species ("Alola"), keyed lowercase, with a few example species. */
+    public record Form(String key, String displayName, List<String> examples) {
     }
 
     /** Implemented species, by dex number then name. Rebuilt after a datapack reload. */
@@ -49,6 +56,45 @@ public final class PdaCatalog {
 
     public static void invalidate() {
         species = null;
+        forms = null;
+    }
+
+    /** Every non-base form name across implemented species, most common first. */
+    public static List<Form> forms() {
+        List<Form> list = forms;
+        if (list == null) {
+            Map<String, String> names = new LinkedHashMap<>();
+            Map<String, List<String>> examples = new LinkedHashMap<>();
+            for (Species kind : species()) {
+                String base = kind.getStandardForm().getName();
+                for (FormData form : kind.getForms()) {
+                    String name = form.getName();
+                    if (name.equalsIgnoreCase(base) || name.equalsIgnoreCase("normal")) {
+                        continue;
+                    }
+                    String key = name.toLowerCase(Locale.ROOT);
+                    names.putIfAbsent(key, name);
+                    examples.computeIfAbsent(key, k -> new ArrayList<>()).add(kind.getName());
+                }
+            }
+            list = new ArrayList<>();
+            for (Map.Entry<String, String> entry : names.entrySet()) {
+                List<String> all = examples.get(entry.getKey());
+                list.add(new Form(entry.getKey(), entry.getValue(), List.copyOf(all.subList(0, Math.min(3, all.size())))));
+            }
+            list.sort(Comparator.<Form>comparingInt(form -> -examples.get(form.key()).size()).thenComparing(Form::key));
+            forms = list = List.copyOf(list);
+        }
+        return list;
+    }
+
+    public static String formName(String key) {
+        for (Form form : forms()) {
+            if (form.key().equals(key)) {
+                return form.displayName();
+            }
+        }
+        return key;
     }
 
     /** Spawn bucket names from Cobblemon's spawner config, most common first. */

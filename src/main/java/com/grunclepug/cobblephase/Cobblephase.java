@@ -11,8 +11,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import com.grunclepug.cobblephase.habitat.HabitatPhases;
 import com.grunclepug.cobblephase.news.CatchNews;
 import com.grunclepug.cobblephase.pda.Pda;
+import com.grunclepug.cobblephase.wish.Wishes;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.ChatFormatting;
@@ -27,11 +29,9 @@ import net.minecraft.resources.ResourceLocation;
 /**
  * Registers {@code /phase <habitat>}, which reports a Cobblemon habitat's current spawn phase.
  *
- * <p>Mirrors {@code HabitatBlockEntity.calculatePhase} for the default SIMPLE phase order: the phase advances
- * once every 24000 ticks of total game time (not time of day), cycling through the pool's phase count.
+ * <p>Phase maths lives in {@link HabitatPhases}, shared with the PDA's habitat planner.
  */
 public final class Cobblephase implements ModInitializer {
-    private static final long TICKS_PER_PHASE = 24000L;
     private static final String HABITATS_PREFIX = "habitats/";
 
     @Override
@@ -39,6 +39,7 @@ public final class Cobblephase implements ModInitializer {
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> register(dispatcher));
         Pda.init();
         CatchNews.init();
+        Wishes.init();
     }
 
     private static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
@@ -70,16 +71,15 @@ public final class Cobblephase implements ModInitializer {
 
         int count = pool.getPhaseCount();
         long gameTime = source.getLevel().getGameTime();
-        long day = gameTime / TICKS_PER_PHASE;
-        int phase = phaseOf(day, count);
-        int next = phaseOf(day + 1, count);
-        long secondsLeft = (TICKS_PER_PHASE - gameTime % TICKS_PER_PHASE) / 20;
+        long day = HabitatPhases.day(gameTime);
+        int phase = HabitatPhases.phaseOf(day, count);
+        int next = HabitatPhases.phaseOf(day + 1, count);
 
         MutableComponent header = Component.empty()
             .append(Component.translatable(pool.getName()).withStyle(ChatFormatting.GOLD))
             .append(Component.literal(": phase ").withStyle(ChatFormatting.GRAY))
             .append(Component.literal(phase + "/" + count).withStyle(ChatFormatting.GREEN))
-            .append(Component.literal(", next " + next + " in ~" + duration(secondsLeft)).withStyle(ChatFormatting.GRAY));
+            .append(Component.literal(", next " + next + " in ~" + HabitatPhases.duration(HabitatPhases.ticksToNextPhase(gameTime))).withStyle(ChatFormatting.GRAY));
 
         MutableComponent species = Component.literal("Spawning now: ").withStyle(ChatFormatting.GRAY);
         Set<ResourceLocation> seen = new LinkedHashSet<>();
@@ -115,15 +115,6 @@ public final class Cobblephase implements ModInitializer {
     }
 
     private static String shortName(ResourceLocation id) {
-        String path = id.getPath();
-        return path.startsWith(HABITATS_PREFIX) ? path.substring(HABITATS_PREFIX.length()) : path;
-    }
-
-    private static int phaseOf(long day, int count) {
-        return count <= 1 ? 1 : (int) (day % count) + 1;
-    }
-
-    private static String duration(long seconds) {
-        return seconds >= 60 ? (seconds / 60) + "m " + (seconds % 60) + "s" : seconds + "s";
+        return HabitatPhases.shortName(id);
     }
 }
