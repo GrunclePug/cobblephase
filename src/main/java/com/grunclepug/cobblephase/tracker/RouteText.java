@@ -4,6 +4,8 @@ import com.cobblemon.mod.common.api.conditional.RegistryLikeCondition;
 import com.cobblemon.mod.common.api.conditional.RegistryLikeIdentifierCondition;
 import com.cobblemon.mod.common.api.conditional.RegistryLikeTagCondition;
 import com.cobblemon.mod.common.api.spawning.MoonPhaseRange;
+import com.cobblemon.mod.common.api.spawning.condition.AreaTypeSpawningCondition;
+import com.cobblemon.mod.common.api.spawning.condition.GroundedTypeSpawningCondition;
 import com.cobblemon.mod.common.api.spawning.condition.SpawningCondition;
 import com.cobblemon.mod.common.api.spawning.detail.SpawnDetail;
 import com.cobblemon.mod.common.api.spawning.multiplier.WeightMultiplier;
@@ -42,8 +44,22 @@ public final class RouteText {
             lines.addAll(condition(prefix, conditions.get(i)));
         }
         for (SpawningCondition<?> anti : SpawnIndex.orEmpty(detail.getAnticonditions())) {
+            List<String> not = new ArrayList<>();
             if (!SpawnIndex.orEmpty(anti.getBiomes()).isEmpty()) {
-                lines.add(line("Not in: ", biomes(anti.getBiomes())));
+                not.add("in " + biomes(anti.getBiomes()));
+            }
+            if (!SpawnIndex.orEmpty(anti.getStructures()).isEmpty()) {
+                not.add("in " + structures(anti.getStructures()));
+            }
+            if (anti instanceof AreaTypeSpawningCondition<?> area && !SpawnIndex.orEmpty(area.getNeededNearbyBlocks()).isEmpty()) {
+                not.add("near " + blocks(area.getNeededNearbyBlocks()));
+            }
+            if (anti instanceof GroundedTypeSpawningCondition<?> grounded && !SpawnIndex.orEmpty(grounded.getNeededBaseBlocks()).isEmpty()) {
+                not.add("on " + blocks(grounded.getNeededBaseBlocks()));
+            }
+            if (!not.isEmpty()) {
+                // Separate entries are separate rules: any one of them rules a spawn out.
+                lines.add(line("Not: ", String.join(", ", not)));
             }
         }
         for (WeightMultiplier multiplier : SpawnIndex.orEmpty(detail.getWeightMultipliers())) {
@@ -59,6 +75,12 @@ public final class RouteText {
             SpawnIndex.orEmpty(condition.getBiomes()).isEmpty() ? "any" : biomes(condition.getBiomes())));
         if (!SpawnIndex.orEmpty(condition.getStructures()).isEmpty()) {
             lines.add(line("  In structure: ", structures(condition.getStructures())));
+        }
+        if (condition instanceof GroundedTypeSpawningCondition<?> grounded && !SpawnIndex.orEmpty(grounded.getNeededBaseBlocks()).isEmpty()) {
+            lines.add(line("  Standing on: ", blocks(grounded.getNeededBaseBlocks())));
+        }
+        if (condition instanceof AreaTypeSpawningCondition<?> area && !SpawnIndex.orEmpty(area.getNeededNearbyBlocks()).isEmpty()) {
+            lines.add(line("  Near: ", blocks(area.getNeededNearbyBlocks())));
         }
         List<String> extra = new ArrayList<>();
         if (condition.getTimeRange() != null) {
@@ -131,6 +153,18 @@ public final class RouteText {
             }
         }
         return String.join(", ", names);
+    }
+
+    private static String blocks(java.util.Collection<? extends RegistryLikeCondition<?>> blocks) {
+        List<String> names = new ArrayList<>();
+        for (RegistryLikeCondition<?> condition : blocks) {
+            if (condition instanceof RegistryLikeTagCondition<?> tag) {
+                names.add(tagName(tag.getTag()));
+            } else if (condition instanceof RegistryLikeIdentifierCondition<?> id) {
+                names.add(idName(id.getIdentifier()));
+            }
+        }
+        return names.isEmpty() ? "certain blocks" : String.join(", ", names);
     }
 
     private static String structures(List<Either<ResourceLocation, TagKey<Structure>>> structures) {

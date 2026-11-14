@@ -11,7 +11,11 @@ import com.cobblemon.mod.common.CobblemonItems;
 import com.cobblemon.mod.common.api.pokedex.AbstractPokedexManager;
 import com.cobblemon.mod.common.api.pokedex.PokedexEntryProgress;
 import com.cobblemon.mod.common.api.conditional.RegistryLikeCondition;
+import com.cobblemon.mod.common.api.spawning.condition.AreaTypeSpawningCondition;
+import com.cobblemon.mod.common.api.spawning.condition.BasicSpawningCondition;
 import com.cobblemon.mod.common.api.spawning.condition.CompositeSpawningCondition;
+import com.cobblemon.mod.common.api.spawning.condition.GroundedSpawningCondition;
+import com.cobblemon.mod.common.api.spawning.condition.GroundedTypeSpawningCondition;
 import com.cobblemon.mod.common.api.spawning.condition.SpawningCondition;
 import com.cobblemon.mod.common.api.spawning.detail.SpawnDetail;
 import com.cobblemon.mod.common.api.types.ElementalType;
@@ -159,28 +163,51 @@ final class HereScreen {
      */
     private static boolean possibleNow(SpawnIndex.Route route, ServerLevel level, BlockPos pos, Holder<Biome> biome) {
         SpawnDetail detail = route.detail();
-        if (!anyMatches(SpawnIndex.orEmpty(detail.getConditions()), true, level, pos, biome)
-            || anyMatches(SpawnIndex.orEmpty(detail.getAnticonditions()), false, level, pos, biome)) {
+        if (!anyMatches(SpawnIndex.orEmpty(detail.getConditions()), true, false, level, pos, biome)
+            || anyMatches(SpawnIndex.orEmpty(detail.getAnticonditions()), false, true, level, pos, biome)) {
             return false;
         }
         CompositeSpawningCondition composite = detail.getCompositeCondition();
         return composite == null
-            || (anyMatches(SpawnIndex.orEmpty(composite.getConditions()), true, level, pos, biome)
-                && !anyMatches(SpawnIndex.orEmpty(composite.getAnticonditions()), false, level, pos, biome));
+            || (anyMatches(SpawnIndex.orEmpty(composite.getConditions()), true, false, level, pos, biome)
+                && !anyMatches(SpawnIndex.orEmpty(composite.getAnticonditions()), false, true, level, pos, biome));
     }
 
-    /** Whether any condition matches; an empty list counts as {@code whenEmpty}. */
-    private static boolean anyMatches(java.util.Collection<SpawningCondition<?>> conditions, boolean whenEmpty,
+    /**
+     * Whether any condition matches; an empty list counts as {@code whenEmpty}. An anticondition only counts when
+     * everything it sets can be checked here: presets like "wild" add anticonditions on nearby blocks and village
+     * structures, which this can't see, and those must not rule a spawn out.
+     */
+    private static boolean anyMatches(java.util.Collection<SpawningCondition<?>> conditions, boolean whenEmpty, boolean anti,
                                       ServerLevel level, BlockPos pos, Holder<Biome> biome) {
         if (conditions.isEmpty()) {
             return whenEmpty;
         }
         for (SpawningCondition<?> c : conditions) {
-            if (matches(c, level, pos, biome)) {
+            if ((!anti || checkable(c)) && matches(c, level, pos, biome)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** False when the condition sets anything {@link #matches} ignores (blocks, structures, light, markers...). */
+    private static boolean checkable(SpawningCondition<?> c) {
+        if (!(c instanceof BasicSpawningCondition) && !(c instanceof GroundedSpawningCondition)) {
+            return false; // Water, lava, fishing and other position types carry fields of their own.
+        }
+        if (c instanceof AreaTypeSpawningCondition<?> area && (!SpawnIndex.orEmpty(area.getNeededNearbyBlocks()).isEmpty()
+            || area.getMinHeight() != null || area.getMaxHeight() != null)) {
+            return false;
+        }
+        if (c instanceof GroundedTypeSpawningCondition<?> grounded && !SpawnIndex.orEmpty(grounded.getNeededBaseBlocks()).isEmpty()) {
+            return false;
+        }
+        return SpawnIndex.orEmpty(c.getStructures()).isEmpty() && SpawnIndex.orEmpty(c.getMarkers()).isEmpty()
+            && SpawnIndex.orEmpty(c.getAppendages()).isEmpty()
+            && c.getMinX() == null && c.getMaxX() == null && c.getMinZ() == null && c.getMaxZ() == null
+            && c.getMinLight() == null && c.getMaxLight() == null && c.getMinSkyLight() == null && c.getMaxSkyLight() == null
+            && c.isSlimeChunk() == null && c.isPokeSnack() == null;
     }
 
     private static boolean matches(SpawningCondition<?> c, ServerLevel level, BlockPos pos, Holder<Biome> biome) {
