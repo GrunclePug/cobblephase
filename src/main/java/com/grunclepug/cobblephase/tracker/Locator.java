@@ -29,6 +29,7 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ChunkResult;
+import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.level.TicketType;
@@ -98,6 +99,7 @@ public final class Locator {
         final List<Check> inFlight = new ArrayList<>();
         final List<BlockPos> confirmed = new ArrayList<>();
         String target;
+        ChunkPos ticket;
         BlockPos destination;
         boolean destinationChecked;
         boolean fromGoodSpot;
@@ -196,7 +198,20 @@ public final class Locator {
     public static void cancel(UUID player) {
         Job job = JOBS.remove(player);
         if (job != null) {
-            job.cancelled = true;
+            finish(job);
+        }
+    }
+
+    /** Stops a job's background work and releases its chunk ticket. */
+    private static void finish(Job job) {
+        job.cancelled = true;
+        releaseTicket(job);
+    }
+
+    private static void releaseTicket(Job job) {
+        if (job.ticket != null) {
+            job.level.getChunkSource().removeRegionTicket(TICKET, job.ticket, 1, job.ticket);
+            job.ticket = null;
         }
     }
 
@@ -207,7 +222,7 @@ public final class Locator {
             Job job = it.next().getValue();
             ServerPlayer player = server.getPlayerList().getPlayer(job.player);
             if (player == null || player.serverLevel() != job.level || job.cancelled) {
-                job.cancelled = true;
+                finish(job);
                 it.remove();
                 continue;
             }
@@ -216,6 +231,7 @@ public final class Locator {
                     .withStyle(ChatFormatting.GRAY), true);
             }
             if (step(job, player, now)) {
+                finish(job);
                 it.remove();
             }
         }
@@ -271,8 +287,11 @@ public final class Locator {
     private static void checkStructures(Job job) {
         while (job.inFlight.size() < MAX_IN_FLIGHT && !job.toCheck.isEmpty()) {
             Searches.Candidate candidate = job.toCheck.poll();
-            job.inFlight.add(new Check(candidate, job.level.getChunkSource()
-                .getChunkFuture(candidate.x() >> 4, candidate.z() >> 4, ChunkStatus.STRUCTURE_STARTS, true)));
+            // Requested from a worker: on the server thread getChunkFuture would block until the chunk is ready.
+            ServerChunkCache chunks = job.level.getChunkSource();
+            job.inFlight.add(new Check(candidate, CompletableFuture.supplyAsync(() ->
+                    chunks.getChunkFuture(candidate.x() >> 4, candidate.z() >> 4, ChunkStatus.STRUCTURE_STARTS, true), SEARCHER)
+                .thenCompose(future -> future)));
         }
         for (Iterator<Check> it = job.inFlight.iterator(); it.hasNext(); ) {
             Check check = it.next();
@@ -302,12 +321,13 @@ public final class Locator {
 
     /** Loads the area around {@code pos}; {@code checked} when it's already known to be the right place. */
     private static void goTo(Job job, BlockPos pos, boolean checked, MinecraftServer server) {
+        releaseTicket(job);
         job.destination = pos;
         job.destinationChecked = checked;
         job.stage = Stage.LOADING;
         job.loadStart = server.getTickCount();
-        ChunkPos chunk = new ChunkPos(pos);
-        job.level.getChunkSource().addRegionTicket(TICKET, chunk, 1, chunk);
+        job.ticket = new ChunkPos(pos);
+        job.level.getChunkSource().addRegionTicket(TICKET, job.ticket, 1, job.ticket);
     }
 
     /** The 3×3 chunks around {@code pos} are fully loaded (the landing search stays inside them). */
@@ -337,6 +357,7 @@ public final class Locator {
     }
 
     private static boolean retry(Job job, ServerPlayer player, String why) {
+        releaseTicket(job);
         job.checks++;
         if (job.biomeSearch != null) {
             job.biomeSearch.avoid(job.destination.getX(), job.destination.getZ(), 96);
@@ -440,6 +461,8 @@ public final class Locator {
         String command = String.format(Locale.ROOT, "execute in %s run tp %s %.1f %d %.1f",
             job.level.dimension().location(), player.getStringUUID(), landing.getX() + 0.5, landing.getY(), landing.getZ() + 0.5);
         server.getCommands().performPrefixedCommand(server.createCommandSourceStack().withSuppressedOutput(), command);
+        // Same-dimension /tp keeps fall distance; don't let a fall in progress hurt at the destination.
+        player.resetFallDistance();
 
         String where = job.structureSearch != null ? job.label
             : job.level.getBiome(landing).unwrapKey().map(key -> RouteText.idName(key.location())).orElse("there");
@@ -447,7 +470,7 @@ public final class Locator {
             : job.level.getBiome(landing).unwrapKey().map(key -> "biome:" + key.location()).orElse("biome:unknown");
         TeleportSpots.Spot spot = new TeleportSpots.Spot(job.level.dimension().location(), target,
             landing.getX(), landing.getY(), landing.getZ(), true);
-        String token = Long.toString(server.getTickCount(), 36) + Integer.toString(player.getId(), 36);
+        String token = UUID.randomUUID().toString().replace("-", "").substring(0, 12);
         RATINGS.put(token, new Rating(player.getUUID(), spot, server.getTickCount() + RATING_TTL));
 
         message(player, Component.literal("Teleported to " + where + ", " + String.format(Locale.ROOT, "%,d", distance)
@@ -469,10 +492,12 @@ public final class Locator {
 
     /** Files a rating from a chat button; false when the token is unknown, expired or not this player's. */
     static boolean rate(ServerPlayer player, String token, boolean good) {
-        Rating rating = RATINGS.remove(token);
-        if (rating == null || !rating.player().equals(player.getUUID())) {
+        Rating rating = RATINGS.get(token);
+        if (rating == null || !rating.player().equals(player.getUUID())
+            || rating.expires() < player.server.getTickCount()) {
             return false;
         }
+        RATINGS.remove(token);
         TeleportSpots.Spot spot = rating.spot();
         TeleportSpots.get(player.server).rate(new TeleportSpots.Spot(spot.dimension(), spot.target(),
             spot.x(), spot.y(), spot.z(), good));

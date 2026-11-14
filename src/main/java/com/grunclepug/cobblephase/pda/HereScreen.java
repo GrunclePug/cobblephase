@@ -10,7 +10,10 @@ import com.cobblemon.mod.common.Cobblemon;
 import com.cobblemon.mod.common.CobblemonItems;
 import com.cobblemon.mod.common.api.pokedex.AbstractPokedexManager;
 import com.cobblemon.mod.common.api.pokedex.PokedexEntryProgress;
+import com.cobblemon.mod.common.api.conditional.RegistryLikeCondition;
+import com.cobblemon.mod.common.api.spawning.condition.CompositeSpawningCondition;
 import com.cobblemon.mod.common.api.spawning.condition.SpawningCondition;
+import com.cobblemon.mod.common.api.spawning.detail.SpawnDetail;
 import com.cobblemon.mod.common.api.types.ElementalType;
 import com.cobblemon.mod.common.api.types.ElementalTypes;
 import com.cobblemon.mod.common.item.PokemonItem;
@@ -24,11 +27,13 @@ import java.util.Locale;
 import java.util.Map;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.biome.Biome;
 
 /** "What spawns here?": every natural spawn entry for the biome the player stands in, with filters and sorting. */
 final class HereScreen {
@@ -44,17 +49,21 @@ final class HereScreen {
         PdaMenu.View view = menu.view;
         ServerLevel level = player.serverLevel();
         BlockPos pos = player.blockPosition();
-        ResourceLocation biome = level.getBiome(pos).unwrapKey().map(key -> key.location()).orElse(null);
+        Holder<Biome> biomeHolder = level.getBiome(pos);
+        ResourceLocation biome = biomeHolder.unwrapKey().map(key -> key.location()).orElse(null);
         AbstractPokedexManager pokedex = Cobblemon.INSTANCE.getPlayerDataManager().getPokedexData(player);
 
         Map<String, Entry> entries = new LinkedHashMap<>();
         if (biome != null) {
             for (List<SpawnIndex.Route> routes : SpawnIndex.index().values()) {
                 for (SpawnIndex.Route route : routes) {
-                    if (!route.detail().getValidBiomes().contains(biome)) {
+                    // Rarity and type filter single entries, so a species' other entries can't hide a match.
+                    if (!route.detail().getValidBiomes().contains(biome)
+                        || (view.hereBucket != null && !view.hereBucket.equals(route.detail().getBucket()))
+                        || (view.hereType != null && !hasType(route, view.hereType))) {
                         continue;
                     }
-                    boolean now = possibleNow(route, level, pos);
+                    boolean now = possibleNow(route, level, pos, biomeHolder);
                     String key = route.species().getResourceIdentifier() + "/" + route.formText();
                     Entry old = entries.get(key);
                     if (old == null) {
@@ -70,12 +79,6 @@ final class HereScreen {
         List<Entry> list = new ArrayList<>();
         for (Entry entry : entries.values()) {
             if (view.hereNow && !entry.now()) {
-                continue;
-            }
-            if (view.hereBucket != null && !view.hereBucket.equals(entry.route().detail().getBucket())) {
-                continue;
-            }
-            if (view.hereType != null && !hasType(entry.route(), view.hereType)) {
                 continue;
             }
             if (view.hereUncaught && pokedex.getKnowledgeForSpecies(entry.route().species().getResourceIdentifier())
@@ -149,30 +152,54 @@ final class HereScreen {
             });
     }
 
-    /** Whether some condition of the entry allows a spawn at {@code pos} now; its biome already matched. */
-    private static boolean possibleNow(SpawnIndex.Route route, ServerLevel level, BlockPos pos) {
-        List<SpawningCondition<?>> conditions = route.detail().getConditions();
-        if (conditions.isEmpty()) {
-            return true;
+    /**
+     * Whether the entry could spawn at {@code pos} now: some alternative condition matches (its own biomes
+     * included), no anticondition matches, and the composite condition, if any, agrees. Checks what the world can
+     * tell cheaply (biome, dimension, time, weather, sky, moon, height); block and light details are left out.
+     */
+    private static boolean possibleNow(SpawnIndex.Route route, ServerLevel level, BlockPos pos, Holder<Biome> biome) {
+        SpawnDetail detail = route.detail();
+        if (!anyMatches(SpawnIndex.orEmpty(detail.getConditions()), true, level, pos, biome)
+            || anyMatches(SpawnIndex.orEmpty(detail.getAnticonditions()), false, level, pos, biome)) {
+            return false;
         }
-        int time = (int) (level.getDayTime() % 24000L);
+        CompositeSpawningCondition composite = detail.getCompositeCondition();
+        return composite == null
+            || (anyMatches(SpawnIndex.orEmpty(composite.getConditions()), true, level, pos, biome)
+                && !anyMatches(SpawnIndex.orEmpty(composite.getAnticonditions()), false, level, pos, biome));
+    }
+
+    /** Whether any condition matches; an empty list counts as {@code whenEmpty}. */
+    private static boolean anyMatches(java.util.Collection<SpawningCondition<?>> conditions, boolean whenEmpty,
+                                      ServerLevel level, BlockPos pos, Holder<Biome> biome) {
+        if (conditions.isEmpty()) {
+            return whenEmpty;
+        }
         for (SpawningCondition<?> c : conditions) {
-            if ((c.getDimensions().isEmpty() || c.getDimensions().contains(level.dimension().location()))
-                && (c.getTimeRange() == null || c.getTimeRange().contains(time))
-                && (c.isRaining() == null || c.isRaining() == level.isRaining())
-                && (c.isThundering() == null || c.isThundering() == level.isThundering())
-                && (c.getCanSeeSky() == null || c.getCanSeeSky() == level.canSeeSky(pos.above()))
-                && (c.getMoonPhase() == null || c.getMoonPhase().contains(level.getMoonPhase()))
-                && (c.getMinY() == null || pos.getY() >= c.getMinY())
-                && (c.getMaxY() == null || pos.getY() <= c.getMaxY())) {
+            if (matches(c, level, pos, biome)) {
                 return true;
             }
         }
         return false;
     }
 
+    private static boolean matches(SpawningCondition<?> c, ServerLevel level, BlockPos pos, Holder<Biome> biome) {
+        java.util.Collection<RegistryLikeCondition<Biome>> biomes = SpawnIndex.orEmpty(c.getBiomes());
+        java.util.Collection<ResourceLocation> dimensions = SpawnIndex.orEmpty(c.getDimensions());
+        int time = (int) (level.getDayTime() % 24000L);
+        return (biomes.isEmpty() || biomes.stream().anyMatch(b -> b.fits(biome)))
+            && (dimensions.isEmpty() || dimensions.contains(level.dimension().location()))
+            && (c.getTimeRange() == null || c.getTimeRange().contains(time))
+            && (c.isRaining() == null || c.isRaining() == level.isRaining())
+            && (c.isThundering() == null || c.isThundering() == level.isThundering())
+            && (c.getCanSeeSky() == null || c.getCanSeeSky() == level.canSeeSky(pos.above()))
+            && (c.getMoonPhase() == null || c.getMoonPhase().contains(level.getMoonPhase()))
+            && (c.getMinY() == null || pos.getY() >= c.getMinY())
+            && (c.getMaxY() == null || pos.getY() <= c.getMaxY());
+    }
+
     private static boolean hasType(SpawnIndex.Route route, String type) {
-        for (ElementalType t : route.species().getStandardForm().getTypes()) {
+        for (ElementalType t : route.form().getTypes()) {
             if (t.getName().equalsIgnoreCase(type)) {
                 return true;
             }

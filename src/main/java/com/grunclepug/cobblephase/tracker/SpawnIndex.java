@@ -7,6 +7,7 @@ import com.cobblemon.mod.common.api.spawning.detail.PokemonHerdSpawnDetail;
 import com.cobblemon.mod.common.api.spawning.detail.PokemonSpawnDetail;
 import com.cobblemon.mod.common.api.spawning.detail.SpawnDetail;
 import com.cobblemon.mod.common.api.spawning.detail.SpawnPool;
+import com.cobblemon.mod.common.pokemon.FormData;
 import com.cobblemon.mod.common.pokemon.Species;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,6 +46,20 @@ public final class SpawnIndex {
             return text.substring(0, 1).toUpperCase(Locale.ROOT) + text.substring(1);
         }
 
+        /** The form this entry spawns: by its form name, else by its aspects; the base form otherwise. */
+        public FormData form() {
+            if (props.getForm() != null && !props.getForm().isBlank()) {
+                FormData byName = species.getFormByName(props.getForm());
+                if (byName == null) {
+                    byName = species.getFormByShowdownId(props.getForm());
+                }
+                if (byName != null) {
+                    return byName;
+                }
+            }
+            return species.getForm(props.getAspects());
+        }
+
         public String levelText() {
             if (levels == null) {
                 return "?";
@@ -78,7 +93,7 @@ public final class SpawnIndex {
                         add(map, single.getPokemon(), detail, single.getLevelRange(), false);
                     } else if (detail instanceof PokemonHerdSpawnDetail herd) {
                         for (PokemonHerdSpawnDetail.Herdable member : herd.getHerdablePokemon()) {
-                            add(map, member.getPokemon(), detail, member.getLevelRange(), true);
+                            add(map, member.getPokemon(), detail, herdLevels(herd.getLevelRange(), member), true);
                         }
                     }
                 }
@@ -97,6 +112,30 @@ public final class SpawnIndex {
         }
         map.computeIfAbsent(species.getResourceIdentifier(), id -> new ArrayList<>())
             .add(new Route(species, props, detail, levels, herd));
+    }
+
+    /**
+     * A herd member's levels: the herd's range shifted by the member's offset, then clamped to the member's own
+     * range (either may be absent).
+     */
+    private static IntRange herdLevels(IntRange herd, PokemonHerdSpawnDetail.Herdable member) {
+        IntRange clamp = member.getLevelRange();
+        if (herd == null) {
+            return clamp;
+        }
+        IntRange offset = member.getLevelRangeOffset();
+        int low = herd.getFirst() + (offset == null ? 0 : offset.getFirst());
+        int high = herd.getLast() + (offset == null ? 0 : offset.getLast());
+        if (clamp != null) {
+            low = Math.clamp(low, clamp.getFirst(), clamp.getLast());
+            high = Math.clamp(high, clamp.getFirst(), clamp.getLast());
+        }
+        return new IntRange(Math.min(low, high), Math.max(low, high));
+    }
+
+    /** Cobblemon leaves optional condition collections null when a spawn entry doesn't set them. */
+    public static <T> java.util.Collection<T> orEmpty(java.util.Collection<T> collection) {
+        return collection == null ? List.of() : collection;
     }
 
     /** "zapdos" or "cobblemon:zapdos" → the species, or null. */

@@ -33,7 +33,7 @@ public final class RouteText {
             + (route.herd() ? " · in herds" : "")));
         lines.add(line("Level: ", route.levelText() + " · " + where(detail.getSpawnablePositionType().getName())));
 
-        List<SpawningCondition<?>> conditions = detail.getConditions();
+        List<SpawningCondition<?>> conditions = new ArrayList<>(SpawnIndex.orEmpty(detail.getConditions()));
         if (conditions.isEmpty()) {
             lines.add(line("Biomes: ", "any"));
         }
@@ -41,12 +41,12 @@ public final class RouteText {
             String prefix = conditions.size() > 1 ? (i == 0 ? "Either " : "Or ") : "";
             lines.addAll(condition(prefix, conditions.get(i)));
         }
-        for (SpawningCondition<?> anti : detail.getAnticonditions()) {
-            if (!anti.getBiomes().isEmpty()) {
+        for (SpawningCondition<?> anti : SpawnIndex.orEmpty(detail.getAnticonditions())) {
+            if (!SpawnIndex.orEmpty(anti.getBiomes()).isEmpty()) {
                 lines.add(line("Not in: ", biomes(anti.getBiomes())));
             }
         }
-        for (WeightMultiplier multiplier : detail.getWeightMultipliers()) {
+        for (WeightMultiplier multiplier : SpawnIndex.orEmpty(detail.getWeightMultipliers())) {
             lines.add(Component.literal("×" + trim(multiplier.getMultiplier()) + " more likely " + boostText(multiplier))
                 .withStyle(ChatFormatting.LIGHT_PURPLE));
         }
@@ -56,8 +56,8 @@ public final class RouteText {
     private static List<Component> condition(String prefix, SpawningCondition<?> condition) {
         List<Component> lines = new ArrayList<>();
         lines.add(line(prefix + (prefix.isEmpty() ? "Biomes: " : "biomes: "),
-            condition.getBiomes().isEmpty() ? "any" : biomes(condition.getBiomes())));
-        if (!condition.getStructures().isEmpty()) {
+            SpawnIndex.orEmpty(condition.getBiomes()).isEmpty() ? "any" : biomes(condition.getBiomes())));
+        if (!SpawnIndex.orEmpty(condition.getStructures()).isEmpty()) {
             lines.add(line("  In structure: ", structures(condition.getStructures())));
         }
         List<String> extra = new ArrayList<>();
@@ -87,7 +87,7 @@ public final class RouteText {
         if (condition.getMoonPhase() != null) {
             extra.add(moonName(condition.getMoonPhase()));
         }
-        if (!condition.getDimensions().isEmpty()) {
+        if (!SpawnIndex.orEmpty(condition.getDimensions()).isEmpty()) {
             List<String> dims = new ArrayList<>();
             for (ResourceLocation dim : condition.getDimensions()) {
                 dims.add(dim.getPath().replace('_', ' '));
@@ -102,7 +102,7 @@ public final class RouteText {
 
     private static String boostText(WeightMultiplier multiplier) {
         List<String> parts = new ArrayList<>();
-        for (SpawningCondition<?> condition : multiplier.getConditions()) {
+        for (SpawningCondition<?> condition : SpawnIndex.orEmpty(multiplier.getConditions())) {
             if (Boolean.TRUE.equals(condition.isThundering())) {
                 parts.add("during thunderstorms");
             } else if (Boolean.TRUE.equals(condition.isRaining())) {
@@ -111,7 +111,7 @@ public final class RouteText {
             if (condition.getTimeRange() != null) {
                 parts.add("at " + timeName(condition));
             }
-            if (!condition.getBiomes().isEmpty()) {
+            if (!SpawnIndex.orEmpty(condition.getBiomes()).isEmpty()) {
                 parts.add("in " + biomes(condition.getBiomes()));
             }
         }
@@ -158,7 +158,7 @@ public final class RouteText {
     }
 
     private static String timeName(SpawningCondition<?> condition) {
-        String name = condition.getTimeRange().displayName().getString();
+        String name = condition.getTimeRange().displayName() == null ? "" : condition.getTimeRange().displayName().getString();
         return name.isBlank() ? "certain times" : name.toLowerCase(Locale.ROOT);
     }
 

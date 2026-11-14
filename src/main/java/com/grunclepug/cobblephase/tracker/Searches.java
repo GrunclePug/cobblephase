@@ -158,8 +158,11 @@ final class Searches {
      * pick and the structure's own template, which only world generation can answer exactly).
      */
     static final class StructureSearch extends Base {
-        /** Offsets from a candidate chunk's corner where the structure's start piece can plausibly sit. */
-        private static final int[][] SAMPLES = {{0, 0}, {8, 8}, {-8, -8}, {16, 0}, {0, 16}, {-16, 0}, {0, -16}};
+        /**
+         * Offsets from a candidate chunk's corner covering where a rotated start piece's biome check can land; the
+         * filter only drops a chunk when none of these spots, at any of the heights, has one of its biomes.
+         */
+        private static final int[][] SAMPLES = grid(32, 16);
 
         private final Holder<Structure> structure;
         private final ResourceLocation structureId;
@@ -179,7 +182,11 @@ final class Searches {
             this.source = level.getChunkSource().getGenerator().getBiomeSource();
             this.sampler = level.getChunkSource().randomState().sampler();
             int sea = level.getSeaLevel();
-            this.heights = new int[] {sea - 16, sea, sea + 32, sea + 64};
+            List<Integer> ys = new ArrayList<>();
+            for (int y = sea - 32; y <= sea + 160; y += 16) {
+                ys.add(y);
+            }
+            this.heights = ys.stream().mapToInt(Integer::intValue).toArray();
             for (Holder<StructureSet> set : state.possibleStructureSets()) {
                 boolean contains = set.value().structures().stream().anyMatch(e -> e.structure().equals(structure));
                 if (contains && set.value().placement() instanceof RandomSpreadStructurePlacement spread) {
@@ -191,6 +198,17 @@ final class Searches {
         /** False when the structure doesn't generate here, or only with a placement type this can't search. */
         boolean searchable() {
             return !placements.isEmpty();
+        }
+
+        private static int[][] grid(int radius, int step) {
+            List<int[]> points = new ArrayList<>();
+            for (int dx = -radius; dx <= radius; dx += step) {
+                for (int dz = -radius; dz <= radius; dz += step) {
+                    points.add(new int[] {dx, dz});
+                }
+            }
+            points.sort((a, b) -> Integer.compare(a[0] * a[0] + a[1] * a[1], b[0] * b[0] + b[1] * b[1]));
+            return points.toArray(int[][]::new);
         }
 
         Holder<Structure> structure() {

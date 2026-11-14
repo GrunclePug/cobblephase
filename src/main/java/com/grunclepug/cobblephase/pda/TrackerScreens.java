@@ -170,7 +170,7 @@ final class TrackerScreens {
 
     /** True when every way this entry can spawn needs open sky, so only surface spots are worth finding. */
     private static boolean needsSky(SpawnIndex.Route route) {
-        List<SpawningCondition<?>> conditions = route.detail().getConditions();
+        java.util.Collection<SpawningCondition<?>> conditions = SpawnIndex.orEmpty(route.detail().getConditions());
         if (conditions.isEmpty()) {
             return false;
         }

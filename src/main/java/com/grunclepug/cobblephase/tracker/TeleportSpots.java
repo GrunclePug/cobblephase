@@ -80,8 +80,10 @@ public final class TeleportSpots extends SavedData {
     public Spot nearestGood(ResourceLocation dimension, Set<String> targets, int px, int pz, int maxDistance) {
         Spot best = null;
         double bestSq = (double) maxDistance * maxDistance;
+        List<Spot> bad = bad(dimension);
         for (Spot spot : spots) {
-            if (spot.good() && spot.dimension().equals(dimension) && targets.contains(spot.target())) {
+            if (spot.good() && spot.dimension().equals(dimension) && targets.contains(spot.target())
+                && !nearAny(bad, spot.x(), spot.z(), BAD_RADIUS)) {
                 double sq = spot.distanceSq(px, pz);
                 if (sq <= bestSq) {
                     best = spot;
