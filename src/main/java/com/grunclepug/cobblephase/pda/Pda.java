@@ -2,6 +2,7 @@ package com.grunclepug.cobblephase.pda;
 
 import com.mojang.serialization.Codec;
 import com.cobblemon.mod.common.block.habitat.HabitatBlockEntity;
+import com.grunclepug.cobblephase.compat.Rct;
 import com.grunclepug.cobblephase.habitat.HabitatObserver;
 import com.grunclepug.cobblephase.habitat.HabitatReminders;
 import com.grunclepug.cobblephase.news.NewsLog;
@@ -91,12 +92,14 @@ public final class Pda {
             Outbreaks.tick(server);
             ConditionAlerts.tick(server);
             EvolutionWatch.tick(server);
+            Rct.tick(server);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             PdaTracker.forget(handler.player);
             ChatPrompt.forget(handler.player);
             PdaMenu.forget(handler.player);
             Locator.cancel(handler.player.getUUID());
+            Rct.forget(handler.player);
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> Locator.shutdown());
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> HabitatReminders.onJoin(handler.player));

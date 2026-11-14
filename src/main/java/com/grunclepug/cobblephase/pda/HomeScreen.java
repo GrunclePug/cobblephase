@@ -7,6 +7,7 @@ import static com.grunclepug.cobblephase.pda.MenuItems.text;
 
 import com.cobblemon.mod.common.item.PokemonItem;
 import com.cobblemon.mod.common.pokemon.Species;
+import com.grunclepug.cobblephase.compat.Rct;
 import com.grunclepug.cobblephase.habitat.HabitatPhases;
 import com.grunclepug.cobblephase.habitat.HabitatReminders;
 import com.grunclepug.cobblephase.world.Outbreaks;
@@ -119,12 +120,6 @@ final class HomeScreen {
             menu.set(46, icon(Items.GRAY_DYE, text("No outbreak right now", ChatFormatting.GRAY),
                 List.of(dim("The next one starts in about " + left + ".")), false), null);
         }
-        menu.set(51, icon(settings.shinyGuard() ? Items.SHIELD : Items.IRON_SWORD,
-            text(settings.shinyGuard() ? "Shiny guard: on" : "Shiny guard: off",
-                settings.shinyGuard() ? ChatFormatting.GREEN : ChatFormatting.RED),
-            List.of(hint("Stops your own hits and arrows"), hint("from hurting wild shinies."),
-                hint("Click to turn " + (settings.shinyGuard() ? "off" : "on"))), false),
-            right -> Pda.save(player, Pda.settings(player).withShinyGuard(!Pda.settings(player).shinyGuard())));
         int reminders = HabitatReminders.get(player).size();
         menu.set(29, icon(Items.MOSS_BLOCK, text("Habitat planner", ChatFormatting.DARK_GREEN), List.of(
             hint("Which habitats spawn a Pokémon, and when"),
@@ -135,26 +130,28 @@ final class HomeScreen {
             hint("Pokémon your friends are looking for"),
             dim(wishes + " wish" + (wishes == 1 ? "" : "es") + " posted")), false),
             right -> menu.view.go(PdaMenu.Screen.WISHBOARD));
-        menu.set(47, icon(Items.SPYGLASS, text("Range: " + settings.radius() + " blocks", ChatFormatting.AQUA),
-            List.of(hint("Click to change")), false), right -> Pda.save(player, Pda.settings(player).nextRadius()));
-        menu.set(48, icon(Items.REPEATER, text("Repeat: " + settings.repeat().displayName, ChatFormatting.AQUA), List.of(
-            hint("The selected result's sound repeats,"),
-            hint("faster the closer you get."),
-            dim("Always: while the PDA is in your inventory"),
-            dim("While held: only with it in your hand"),
-            dim("Off: one ping when found"),
-            hint("Click to change")), false), right -> Pda.save(player, Pda.settings(player).nextRepeat()));
-        menu.set(49, icon(settings.muted() ? Items.GRAY_DYE : Items.LIME_DYE,
-            text(settings.muted() ? "Pings: muted" : "Pings: on", settings.muted() ? ChatFormatting.RED : ChatFormatting.GREEN),
-            List.of(hint("Click to " + (settings.muted() ? "unmute" : "mute")),
-                dim("Muted still tracks and points, without sounds or chat.")), false),
-            right -> Pda.save(player, Pda.settings(player).withMuted(!Pda.settings(player).muted())));
-        menu.set(50, icon(Items.FIREWORK_ROCKET,
-            text(settings.announcements() ? "Catch news: on" : "Catch news: off",
-                settings.announcements() ? ChatFormatting.GREEN : ChatFormatting.RED),
-            List.of(hint("Chat news when anyone catches a shiny,"), hint("the server's first of a species,"),
-                hint("or posts a wish."), hint("Click to turn " + (settings.announcements() ? "off" : "on"))), false),
-            right -> Pda.save(player, Pda.settings(player).withAnnouncements(!Pda.settings(player).announcements())));
+        if (Rct.available()) {
+            List<String> next = Rct.nextTrainers(player);
+            long until = Rct.ticksUntilVisit(player);
+            List<Component> lore = new ArrayList<>();
+            lore.add(hint(next.isEmpty() ? "No next trainer in your RCT series" : "Next: " + String.join(" or ", next)));
+            lore.add(!settings.trainerVisits() ? dim("Visits are off (Settings)")
+                : until < 0 ? dim("Visits start a while after you log in")
+                : hint("Visits you in about " + HabitatPhases.duration(until)));
+            lore.add(dim("Every 20–40 minutes your next trainer"));
+            lore.add(dim("turns up within 10 blocks to battle."));
+            boolean op = player.hasPermissions(2);
+            if (op) {
+                lore.add(hint("Operator: click to call one now"));
+            }
+            menu.set(47, icon(Items.TARGET, text("Trainer visits", ChatFormatting.RED), lore, false), !op ? null : right -> {
+                player.closeContainer();
+                Rct.visitNow(player);
+            });
+        }
+        menu.set(49, icon(Items.COMPARATOR, text("Settings", ChatFormatting.AQUA), List.of(
+            hint("Range, repeat, mute, catch news,"), hint("shiny guard, trainer visits")), false),
+            right -> menu.view.go(PdaMenu.Screen.SETTINGS));
         menu.set(52, icon(Items.BOOK, text("How it works", ChatFormatting.GOLD), List.of(
             hint("Right-click the PDA: open this menu"),
             hint("Sneak + right-click: point at the next result"),

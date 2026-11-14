@@ -33,6 +33,7 @@ players don't need to install it.
 * **Evolution and EV helpers**: what your party needs to evolve (with a ping when it's ready), and your EVs with what to battle for each stat.
 * **Habitat observer**: read a real habitat block's phase, including random phase orders.
 * **News**: a login summary of what you missed, and a news page in the PDA.
+* **Trainer visits**: with Radical Cobblemon Trainers installed, your next trainer turns up within 10 blocks every 20–40 minutes.
 * **Catch news**: tells everyone online when someone catches a shiny or the server's first of a species.
 * **Server-side only**: vanilla command syntax and vanilla menus, so clients need nothing beyond Cobblemon.
 
@@ -43,6 +44,7 @@ players don't need to install it.
 - Java 21
 - Minecraft 1.21.1 with Fabric Loader and Fabric API
 - Cobblemon 1.8 or newer
+- Optional: Radical Cobblemon Trainers 0.19 (for trainer visits)
 
 ### Build
 
@@ -115,8 +117,8 @@ Open the menu and pick **New rule**. A Pokémon matches a rule when it matches e
   enough for a rule, so "any Water type" works by itself.
 
 Each rule has its own sound. Rules are checked top to bottom and the first match decides the sound. The menu also
-sets the range (32 to 128 blocks), mutes pings, turns catch news on or off, and lists nearby matches; click one to
-point the needle at it.
+lists nearby matches (click one to point the needle at it), and its **Settings** page sets the range (32 to 128
+blocks), repeat, mute, catch news, shiny guard and trainer visits.
 Rules are saved on the player, so they survive death and a lost PDA.
 
 Rarity is recorded when Cobblemon spawns a Pokémon, from natural spawning and habitats. Pokémon from fishing, bait
@@ -205,6 +207,17 @@ to wild shinies, so a stray swing can't kill one. Battles aren't affected.
 Right-click a habitat block with the PDA, or use **Nearest habitat block** in the habitat planner, to read that
 habitat's real state: its pool, phase order (simple, fixed random or full random), current phase, when it next
 changes and what it can spawn now. Unlike `/phase`, this is exact for habitats set to a random phase order.
+
+## Trainer visits
+
+With [Radical Cobblemon Trainers](https://modrinth.com/mod/rctmod) installed, every 20 to 40 minutes of play the
+next trainer in your current RCT series (the one its trainer card shows, e.g. Gym Leader Gardenia) turns up 5 to 10
+blocks from you to battle. If your series has several next trainers, one is picked at random. The trainer is spawned
+by RCT itself, so its rules still apply: it needs room to stand, unique trainers like gym leaders only appear once at a
+time, and RCT's per-player trainer limit counts it. Visits wait while you're in a battle and try again a minute later.
+
+The home screen shows your next trainer and roughly when the next visit is; operators can click it to call one now.
+Turn visits off under **Settings**. Without RCT, the feature stays off.
 
 ## Catch news
 

@@ -31,7 +31,7 @@ import net.minecraft.world.item.Items;
 public final class PdaMenu extends ChestMenu {
     public enum Screen {
         HOME, RULE, FILTERS, FORMS, NATURES, SOUND, SPECIES, PLANNER, REMINDERS, WISHBOARD, WISH_NEW, TRACKER, ROUTE_BIOMES,
-        HERE, ALERTS, LEDGER, PARTY, EVOLVE, EVS, NEWS
+        HERE, ALERTS, LEDGER, PARTY, EVOLVE, EVS, NEWS, SETTINGS
     }
 
     /** What the species picker is choosing for. */
@@ -229,6 +229,7 @@ public final class PdaMenu extends ChestMenu {
             case EVOLVE -> PartyScreens.evolve(this);
             case EVS -> PartyScreens.evs(this);
             case NEWS -> NewsScreen.render(this);
+            case SETTINGS -> SettingsScreen.render(this);
         }
         for (int i = BOTTOM; i < SIZE; i++) {
             if (grid.getItem(i).isEmpty()) {

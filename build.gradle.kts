@@ -23,6 +23,9 @@ dependencies {
     // Cobblemon is written in Kotlin; its signatures reference kotlin.ranges types.
     modCompileOnly("maven.modrinth:cobblemon:${property("deps.cobblemon")}")
     compileOnly("org.jetbrains.kotlin:kotlin-stdlib:${property("deps.kotlin")}")
+    // Optional: trainer visits use Radical Cobblemon Trainers when it's installed.
+    modCompileOnly("maven.modrinth:rctmod:${property("deps.rctmod")}")
+    modCompileOnly("maven.modrinth:rctapi:${property("deps.rctapi")}")
 }
 
 java {
