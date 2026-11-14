@@ -38,7 +38,11 @@ public final class Outbreaks {
     private static final Set<String> EXCLUDED_LABELS = Set.of("legendary", "mythical", "ultra_beast", "paradox");
     private static final RandomSource RANDOM = RandomSource.create();
 
+    /** Guards {@link #species} and {@link #AFFECTED} together; spawning may ask from another thread. */
+    private static final Object LOCK = new Object();
     private static Species species;
+    /** Ticks counted only while someone is online, so an empty server doesn't run the clock down. */
+    private static long clock;
     private static long endsAt;
     private static long nextAt = -1;
     /** Per spawn detail: does it spawn the outbreak species? Cleared whenever the outbreak changes. */
@@ -53,28 +57,33 @@ public final class Outbreaks {
 
     /** The species in an outbreak right now, or null. */
     public static Species current() {
-        return species;
+        synchronized (LOCK) {
+            return species;
+        }
     }
 
     /** Ticks until the current outbreak ends, or until the next one starts. */
     public static long ticksLeft(MinecraftServer server) {
-        long now = server.getTickCount();
-        return Math.max(0, species != null ? endsAt - now : nextAt - now);
+        return Math.max(0, current() != null ? endsAt - clock : nextAt - clock);
     }
 
     public static void tick(MinecraftServer server) {
-        long now = server.getTickCount();
-        if (nextAt < 0) {
-            nextAt = now + MIN_GAP / 2 + RANDOM.nextInt(MIN_GAP / 2);
+        if (server.getPlayerList().getPlayers().isEmpty()) {
+            return;
         }
-        if (species != null && now >= endsAt) {
+        long now = ++clock;
+        if (nextAt < 0) {
+            nextAt = now + MIN_GAP + RANDOM.nextInt(MAX_GAP - MIN_GAP);
+        }
+        Species active = current();
+        if (active != null && now >= endsAt) {
             announce(server, Component.literal("The ").withStyle(ChatFormatting.GRAY)
-                .append(species.getTranslatedName().withStyle(ChatFormatting.AQUA))
+                .append(active.getTranslatedName().withStyle(ChatFormatting.AQUA))
                 .append(Component.literal(" outbreak is over.").withStyle(ChatFormatting.GRAY)), false);
             set(null);
             nextAt = now + MIN_GAP + RANDOM.nextInt(MAX_GAP - MIN_GAP);
         }
-        if (species == null && now >= nextAt && !server.getPlayerList().getPlayers().isEmpty()) {
+        if (current() == null && now >= nextAt) {
             Species chosen = choose();
             if (chosen == null) {
                 nextAt = now + MIN_GAP;
@@ -91,8 +100,8 @@ public final class Outbreaks {
     }
 
     private static void set(Species next) {
-        species = next;
-        synchronized (AFFECTED) {
+        synchronized (LOCK) {
+            species = next;
             AFFECTED.clear();
         }
     }
@@ -134,12 +143,12 @@ public final class Outbreaks {
 
         @Override
         public float affectWeight(SpawnDetail detail, SpawnablePosition position, float weight) {
-            Species target = species;
-            if (target == null) {
-                return weight;
-            }
             boolean affected;
-            synchronized (AFFECTED) {
+            synchronized (LOCK) {
+                Species target = species;
+                if (target == null) {
+                    return weight;
+                }
                 affected = AFFECTED.computeIfAbsent(detail, d -> spawns(d, target));
             }
             return affected ? weight * MULTIPLIER : weight;

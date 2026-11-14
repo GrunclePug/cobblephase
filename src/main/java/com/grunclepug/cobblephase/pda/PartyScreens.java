@@ -67,9 +67,14 @@ final class PartyScreens {
         boolean pinned = pokemon.getUuid().equals(player.getAttached(EvolutionWatch.PINNED));
         menu.set(4, icon(PokemonItem.Companion.from(pokemon), PdaCatalog.name(pokemon).withStyle(ChatFormatting.WHITE),
             List.of(dim("Level " + pokemon.getLevel())), false), null);
-        int slot = 19;
+        // Two rows, enough for Eevee's eight.
+        int[] slots = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 32, 33, 34};
+        int next = 0;
         boolean any = false;
         for (Evolution evolution : pokemon.getEvolutions()) {
+            if (next >= slots.length) {
+                break;
+            }
             any = true;
             Species result = evolution.getResult().getSpecies() == null ? null
                 : PokemonSpecies.getByName(evolution.getResult().getSpecies().toLowerCase(java.util.Locale.ROOT));
@@ -78,27 +83,21 @@ final class PartyScreens {
             lore.add(hint("Evolves when it " + EvolutionWatch.trigger(evolution) + ", if:"));
             for (Requirement requirement : evolution.getRequirements()) {
                 boolean met = requirement.check(pokemon);
-                String tooltip = requirement.getPokedexTooltip();
-                Component name = tooltip == null || tooltip.isBlank() ? Component.literal(EvolutionWatch.requirementName(requirement))
-                    : Component.translatable(tooltip);
                 lore.add(Component.literal(met ? "  ✔ " : "  ✘ ").withStyle(met ? ChatFormatting.GREEN : ChatFormatting.RED)
-                    .append(name.copy().withStyle(ChatFormatting.WHITE)));
+                    .append(Component.literal(EvolutionWatch.describe(requirement, pokemon)).withStyle(ChatFormatting.WHITE)));
             }
             if (evolution.getRequirements().isEmpty()) {
                 lore.add(dim("  (nothing else)"));
             }
             lore.add(ready ? text("Ready now", ChatFormatting.GREEN) : dim("Not ready yet"));
-            menu.set(slot++, icon(result == null ? new ItemStack(Items.PAPER) : PokemonItem.Companion.from(result),
+            menu.set(slots[next++], icon(result == null ? new ItemStack(Items.PAPER) : PokemonItem.Companion.from(result),
                 result == null ? text(evolution.getId(), ChatFormatting.WHITE) : result.getTranslatedName().withStyle(ChatFormatting.AQUA),
                 lore, ready), null);
-            if (slot > 25) {
-                break;
-            }
         }
         if (!any) {
             menu.set(22, icon(Items.BARRIER, text("It doesn't evolve", ChatFormatting.GRAY), List.of(), false), null);
         } else {
-            menu.set(31, icon(Items.BELL, toggleTitle(pinned ? "Pinned" : "Pin it", pinned), List.of(
+            menu.set(49, icon(Items.BELL, toggleTitle(pinned ? "Pinned" : "Pin it", pinned), List.of(
                 hint("Tell me once when every requirement"), hint("of one evolution is met."),
                 dim("One pinned Pokémon at a time.")), pinned), right -> {
                     if (pinned) {
