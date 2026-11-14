@@ -14,6 +14,7 @@ import java.util.Set;
 import com.grunclepug.cobblephase.habitat.HabitatPhases;
 import com.grunclepug.cobblephase.news.CatchNews;
 import com.grunclepug.cobblephase.pda.Pda;
+import com.grunclepug.cobblephase.tracker.TrackerCommand;
 import com.grunclepug.cobblephase.wish.Wishes;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -36,7 +37,10 @@ public final class Cobblephase implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> register(dispatcher));
+        CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+            register(dispatcher);
+            TrackerCommand.register(dispatcher);
+        });
         Pda.init();
         CatchNews.init();
         Wishes.init();

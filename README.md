@@ -19,6 +19,8 @@ players don't need to install it.
 * **Trainer PDA**: a craftable gadget that pings you when wild Pokémon matching your rules are nearby.
 * **Ping rules**: match by species, group (legendary, mythical, ultra beast, paradox), spawn rarity, shininess and "not caught yet", each with its own sound.
 * **Rule filters**: narrow a rule by type, form, nature, level range, perfect IVs and hidden ability.
+* **Pokémon tracker**: see every way a Pokémon spawns (biomes, habitats, time, weather, sky) and teleport to the nearest suitable spot.
+* **What spawns here?**: everything that can spawn in your current biome, with filters and sorting.
 * **Habitat planner**: pick a Pokémon to see which habitats spawn it and when, and get reminded when its phase starts.
 * **Wishboard**: post the Pokémon you're looking for; whoever catches one is told who wants it.
 * **Proximity beeps**: the selected match's sound repeats faster as you get closer.
@@ -120,6 +122,33 @@ game time, not time of day, so `/time set`, `/time add` and sleeping don't chang
 
 The command assumes the habitat's default "simple" phase order. A habitat block switched to a random phase order
 shuffles its phases by position, so it won't match.
+
+## Pokémon tracker
+
+Open **Pokémon tracker** in the PDA menu and pick a Pokémon. Each way it spawns gets its own card: natural spawn
+entries (biomes, time of day, weather, sky, height, rarity, level, and anything that makes it more likely, like
+thunderstorms for Zapdos) and habitats that can spawn it.
+
+- **Left-click a spawn card** to find the nearest spot in one of its biomes and teleport there. Right-click it to
+  pick one specific biome instead.
+- **Left-click a habitat card** to find the nearest habitat of that kind and teleport there. Right-click sets a
+  phase reminder.
+- **Ping me for it** adds a PDA rule for the Pokémon.
+
+Teleports are free, have no cooldown, stay in your current dimension and reach up to 10,000 blocks. They land you on
+safe ground and work with Essential Commands' `/back`. Searching runs in the background, so it never stalls the
+server; it can take a few seconds for rare biomes. Finding a spot finds the right terrain; it doesn't guarantee the
+Pokémon is there.
+
+After each teleport, chat asks whether it was a good spot. **[Good]** saves it, and later searches for the same
+biome or habitat go there first; **[Bad]** makes everyone's later searches skip that area (a tiny biome patch, say).
+Clicking neither changes nothing.
+
+## What spawns here?
+
+**What spawns here?** in the PDA menu lists every Pokémon that can spawn naturally in the biome you're standing in.
+Filter to what can spawn right now (time, weather, sky), by rarity, by type, or to species you haven't caught; sort
+by rarity, how common, name or Pokédex number. Click one to open it in the tracker.
 
 ## Habitat planner
 

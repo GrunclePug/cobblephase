@@ -2,6 +2,8 @@ package com.grunclepug.cobblephase.pda;
 
 import com.mojang.serialization.Codec;
 import com.grunclepug.cobblephase.habitat.HabitatReminders;
+import com.grunclepug.cobblephase.tracker.Locator;
+import com.grunclepug.cobblephase.tracker.SpawnIndex;
 import java.util.Objects;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
@@ -66,12 +68,15 @@ public final class Pda {
             PdaTracker.tick(server);
             ChatPrompt.tick(server);
             HabitatReminders.tick(server);
+            Locator.tick(server);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             PdaTracker.forget(handler.player);
             ChatPrompt.forget(handler.player);
             PdaMenu.forget(handler.player);
+            Locator.cancel(handler.player.getUUID());
         });
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> Locator.shutdown());
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> HabitatReminders.onJoin(handler.player));
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register(ChatPrompt::onChat);
         ServerLivingEntityEvents.AFTER_DEATH.register((entity, source) -> {
@@ -79,7 +84,10 @@ public final class Pda {
                 ChatPrompt.forget(player);
             }
         });
-        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> PdaCatalog.invalidate());
+        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resources, success) -> {
+            PdaCatalog.invalidate();
+            SpawnIndex.invalidate();
+        });
     }
 
     public static PdaSettings settings(ServerPlayer player) {

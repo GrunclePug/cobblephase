@@ -38,7 +38,11 @@ final class SpeciesPicker {
             Species species = list.get(start + i);
             ResourceLocation id = species.getResourceIdentifier();
             boolean on = chosen.contains(id);
-            Component action = !forRule ? hint(view.picker == PdaMenu.Picker.PLANNER ? "Click to plan" : "Click to wish for it")
+            Component action = !forRule ? hint(switch (view.picker) {
+                case PLANNER -> "Click to plan";
+                case WISH -> "Click to wish for it";
+                default -> "Click to track";
+            })
                 : on ? text("✔ Chosen: click to remove", ChatFormatting.GREEN) : hint("Click to choose");
             menu.set(i, icon(PokemonItem.Companion.from(species),
                 species.getTranslatedName().withStyle(on ? ChatFormatting.GREEN : ChatFormatting.WHITE),
@@ -51,7 +55,7 @@ final class SpeciesPicker {
 
         PdaMenu.Screen back = switch (view.picker) {
             case RULE -> PdaMenu.Screen.RULE;
-            case PLANNER -> PdaMenu.Screen.HOME;
+            case PLANNER, TRACKER -> PdaMenu.Screen.HOME;
             case WISH -> PdaMenu.Screen.WISHBOARD;
         };
         menu.back(back);
@@ -112,7 +116,14 @@ final class SpeciesPicker {
                 view.wishNote = "";
                 view.go(PdaMenu.Screen.WISH_NEW);
             }
+            case TRACKER -> track(view, id);
         }
+    }
+
+    private static void track(PdaMenu.View view, ResourceLocation id) {
+        view.trackerSpecies = id;
+        view.trackerBack = PdaMenu.Screen.SPECIES;
+        view.go(PdaMenu.Screen.TRACKER);
     }
 
     /**
@@ -173,6 +184,8 @@ final class SpeciesPicker {
         } else if (view.picker == PdaMenu.Picker.PLANNER) {
             view.plannerSpecies = found.getFirst();
             view.go(PdaMenu.Screen.PLANNER);
+        } else if (view.picker == PdaMenu.Picker.TRACKER) {
+            track(view, found.getFirst());
         } else {
             view.wishSpecies = found.getFirst();
             view.wishShiny = false;

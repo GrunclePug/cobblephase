@@ -29,10 +29,24 @@ import net.minecraft.world.item.Items;
  * lives in a {@link View} kept per player, so it survives closing the menu for a chat prompt.
  */
 public final class PdaMenu extends ChestMenu {
-    public enum Screen { HOME, RULE, FILTERS, FORMS, NATURES, SOUND, SPECIES, PLANNER, REMINDERS, WISHBOARD, WISH_NEW }
+    public enum Screen {
+        HOME, RULE, FILTERS, FORMS, NATURES, SOUND, SPECIES, PLANNER, REMINDERS, WISHBOARD, WISH_NEW, TRACKER, ROUTE_BIOMES,
+        HERE
+    }
 
     /** What the species picker is choosing for. */
-    enum Picker { RULE, PLANNER, WISH }
+    enum Picker { RULE, PLANNER, WISH, TRACKER }
+
+    /** How "What spawns here?" sorts. */
+    enum HereSort {
+        RAREST("rarest first"), WEIGHT("most common first"), NAME("name"), DEX("Pokédex number");
+
+        final String displayName;
+
+        HereSort(String displayName) {
+            this.displayName = displayName;
+        }
+    }
 
     static final int SIZE = 54;
     static final int PAGE_SIZE = 45;
@@ -54,6 +68,14 @@ public final class PdaMenu extends ChestMenu {
         boolean wishShiny;
         String wishNote = "";
         UUID confirmWish;
+        ResourceLocation trackerSpecies;
+        Screen trackerBack = Screen.SPECIES;
+        int route;
+        boolean hereNow;
+        boolean hereUncaught;
+        String hereBucket;
+        String hereType;
+        HereSort hereSort = HereSort.RAREST;
 
         void go(Screen next) {
             screen = next;
@@ -178,7 +200,8 @@ public final class PdaMenu extends ChestMenu {
         };
         if ((needsRule && (view.rule < 0 || view.rule >= settings.rules().size()))
             || (view.screen == Screen.PLANNER && view.plannerSpecies == null)
-            || (view.screen == Screen.WISH_NEW && view.wishSpecies == null)) {
+            || (view.screen == Screen.WISH_NEW && view.wishSpecies == null)
+            || ((view.screen == Screen.TRACKER || view.screen == Screen.ROUTE_BIOMES) && view.trackerSpecies == null)) {
             view.go(Screen.HOME);
         }
         switch (view.screen) {
@@ -193,6 +216,9 @@ public final class PdaMenu extends ChestMenu {
             case REMINDERS -> PlannerScreens.reminders(this);
             case WISHBOARD -> WishScreens.board(this);
             case WISH_NEW -> WishScreens.draft(this);
+            case TRACKER -> TrackerScreens.tracker(this);
+            case ROUTE_BIOMES -> TrackerScreens.routeBiomes(this);
+            case HERE -> HereScreen.render(this);
         }
         for (int i = BOTTOM; i < SIZE; i++) {
             if (grid.getItem(i).isEmpty()) {
@@ -236,18 +262,23 @@ public final class PdaMenu extends ChestMenu {
 
     /** Previous / page / next buttons for a paged grid; returns the first index on the current page. */
     int pager(int total) {
-        int pages = Math.max(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+        return pager(total, PAGE_SIZE, null);
+    }
+
+    /** Like {@link #pager(int)} with a custom page size, and an optional title on the page button. */
+    int pager(int total, int pageSize, String title) {
+        int pages = Math.max(1, (total + pageSize - 1) / pageSize);
         view.page = Math.clamp(view.page, 0, pages - 1);
         if (view.page > 0) {
             set(46, icon(Items.SPECTRAL_ARROW, text("◀ Previous page", ChatFormatting.WHITE), List.of(), false),
                 right -> view.page--);
         }
-        set(47, icon(Items.PAPER, text("Page " + (view.page + 1) + "/" + pages, ChatFormatting.WHITE),
-            List.of(hint(total + " total")), false), null);
+        set(47, icon(Items.PAPER, text((title == null ? "" : title + " · ") + "Page " + (view.page + 1) + "/" + pages,
+            ChatFormatting.WHITE), List.of(hint(total + " total")), false), null);
         if (view.page < pages - 1) {
             set(48, icon(Items.SPECTRAL_ARROW, text("Next page ▶", ChatFormatting.WHITE), List.of(), false),
                 right -> view.page++);
         }
-        return view.page * PAGE_SIZE;
+        return view.page * pageSize;
     }
 }

@@ -48,6 +48,12 @@ final class HomeScreen {
             menu.set(i, icon(Items.GRAY_STAINED_GLASS_PANE, text("Nearby matches below", ChatFormatting.GRAY),
                 List.of(), false), null);
         }
+        menu.set(27, icon(Items.RECOVERY_COMPASS, text("Pokémon tracker", ChatFormatting.GOLD), List.of(
+            hint("Where a Pokémon spawns, and teleport"), hint("to the nearest spot for it")), false),
+            right -> menu.view.pick(PdaMenu.Picker.TRACKER));
+        menu.set(28, icon(Items.GRASS_BLOCK, text("What spawns here?", ChatFormatting.GREEN), List.of(
+            hint("Everything that can spawn in"), hint("the biome you're standing in")), false),
+            right -> menu.view.go(PdaMenu.Screen.HERE));
         List<PdaTracker.Result> results = PdaTracker.results(player);
         for (int i = 0; i < Math.min(9, results.size()); i++) {
             PdaTracker.Result result = results.get(i);
@@ -75,30 +81,30 @@ final class HomeScreen {
             });
         }
         int reminders = HabitatReminders.get(player).size();
-        menu.set(46, icon(Items.MOSS_BLOCK, text("Habitat planner", ChatFormatting.DARK_GREEN), List.of(
+        menu.set(29, icon(Items.MOSS_BLOCK, text("Habitat planner", ChatFormatting.DARK_GREEN), List.of(
             hint("Which habitats spawn a Pokémon, and when"),
             dim(reminders + " reminder" + (reminders == 1 ? "" : "s") + " set")), false),
             right -> menu.view.pick(PdaMenu.Picker.PLANNER));
         int wishes = Wishboard.get(player.server).wishes().size();
-        menu.set(47, icon(Items.LECTERN, text("Wishboard", ChatFormatting.LIGHT_PURPLE), List.of(
+        menu.set(30, icon(Items.LECTERN, text("Wishboard", ChatFormatting.LIGHT_PURPLE), List.of(
             hint("Pokémon your friends are looking for"),
             dim(wishes + " wish" + (wishes == 1 ? "" : "es") + " posted")), false),
             right -> menu.view.go(PdaMenu.Screen.WISHBOARD));
-        menu.set(48, icon(Items.SPYGLASS, text("Range: " + settings.radius() + " blocks", ChatFormatting.AQUA),
+        menu.set(47, icon(Items.SPYGLASS, text("Range: " + settings.radius() + " blocks", ChatFormatting.AQUA),
             List.of(hint("Click to change")), false), right -> Pda.save(player, Pda.settings(player).nextRadius()));
-        menu.set(49, icon(Items.REPEATER, text("Repeat: " + settings.repeat().displayName, ChatFormatting.AQUA), List.of(
+        menu.set(48, icon(Items.REPEATER, text("Repeat: " + settings.repeat().displayName, ChatFormatting.AQUA), List.of(
             hint("The selected result's sound repeats,"),
             hint("faster the closer you get."),
             dim("Always: while the PDA is in your inventory"),
             dim("While held: only with it in your hand"),
             dim("Off: one ping when found"),
             hint("Click to change")), false), right -> Pda.save(player, Pda.settings(player).nextRepeat()));
-        menu.set(50, icon(settings.muted() ? Items.GRAY_DYE : Items.LIME_DYE,
+        menu.set(49, icon(settings.muted() ? Items.GRAY_DYE : Items.LIME_DYE,
             text(settings.muted() ? "Pings: muted" : "Pings: on", settings.muted() ? ChatFormatting.RED : ChatFormatting.GREEN),
             List.of(hint("Click to " + (settings.muted() ? "unmute" : "mute")),
                 dim("Muted still tracks and points, without sounds or chat.")), false),
             right -> Pda.save(player, Pda.settings(player).withMuted(!Pda.settings(player).muted())));
-        menu.set(51, icon(Items.FIREWORK_ROCKET,
+        menu.set(50, icon(Items.FIREWORK_ROCKET,
             text(settings.announcements() ? "Catch news: on" : "Catch news: off",
                 settings.announcements() ? ChatFormatting.GREEN : ChatFormatting.RED),
             List.of(hint("Chat news when anyone catches a shiny,"), hint("the server's first of a species,"),

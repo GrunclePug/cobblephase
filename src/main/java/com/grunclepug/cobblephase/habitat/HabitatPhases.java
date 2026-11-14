@@ -9,6 +9,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 
@@ -110,6 +112,27 @@ public final class HabitatPhases {
 
     public static HabitatPool pool(ResourceLocation id) {
         return pools().get(id);
+    }
+
+    /** Pool names whose structure is spelled differently in Cobblemon's data. */
+    private static final Map<String, String> STRUCTURE_ALIASES = Map.of(
+        "reclaimed_desert_monument", "reclaimed_deserted_monument");
+
+    /**
+     * The world structure a habitat pool generates as, or null when it has none (some pools only appear inside
+     * other structures, or are placed by hand). Matches "habitats/<name>" ignoring underscores.
+     */
+    public static ResourceLocation structureFor(ResourceLocation pool, RegistryAccess registries) {
+        String name = shortName(pool);
+        name = STRUCTURE_ALIASES.getOrDefault(name, name);
+        String key = name.replace("_", "");
+        for (ResourceLocation id : registries.registryOrThrow(Registries.STRUCTURE).keySet()) {
+            if (id.getNamespace().equals(pool.getNamespace()) && id.getPath().startsWith(HABITATS_PREFIX)
+                && id.getPath().substring(HABITATS_PREFIX.length()).replace("_", "").equals(key)) {
+                return id;
+            }
+        }
+        return null;
     }
 
     /** "cobblemon:habitats/flowerbed_clearing" → "flowerbed_clearing". */
