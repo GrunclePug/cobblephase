@@ -7,10 +7,11 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 /** A player's PDA settings, saved on the player. Rule order is priority order. */
-public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean announcements, List<PdaRule> rules) {
+public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean announcements, boolean shinyGuard,
+                          List<String> alerts, List<PdaRule> rules) {
     public static final int MAX_RULES = 27;
     public static final int[] RADII = {32, 64, 96, 128};
-    public static final PdaSettings DEFAULT = new PdaSettings(64, false, Repeat.ALWAYS, true, List.of());
+    public static final PdaSettings DEFAULT = new PdaSettings(64, false, Repeat.ALWAYS, true, true, List.of(), List.of());
 
     /** When the selected result's sound repeats, faster the closer it is. */
     public enum Repeat {
@@ -47,10 +48,13 @@ public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean anno
         Codec.BOOL.optionalFieldOf("muted", false).forGetter(PdaSettings::muted),
         Repeat.CODEC.optionalFieldOf("repeat", Repeat.ALWAYS).forGetter(PdaSettings::repeat),
         Codec.BOOL.optionalFieldOf("announcements", true).forGetter(PdaSettings::announcements),
+        Codec.BOOL.optionalFieldOf("shiny_guard", true).forGetter(PdaSettings::shinyGuard),
+        Codec.STRING.listOf().optionalFieldOf("alerts", List.of()).forGetter(PdaSettings::alerts),
         PdaRule.CODEC.listOf().optionalFieldOf("rules", List.of()).forGetter(PdaSettings::rules)
     ).apply(i, PdaSettings::new));
 
     public PdaSettings {
+        alerts = List.copyOf(alerts);
         rules = List.copyOf(rules);
     }
 
@@ -61,37 +65,45 @@ public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean anno
                 next = RADII[(i + 1) % RADII.length];
             }
         }
-        return new PdaSettings(next, muted, repeat, announcements, rules);
+        return new PdaSettings(next, muted, repeat, announcements, shinyGuard, alerts, rules);
     }
 
     public PdaSettings withMuted(boolean value) {
-        return new PdaSettings(radius, value, repeat, announcements, rules);
+        return new PdaSettings(radius, value, repeat, announcements, shinyGuard, alerts, rules);
     }
 
     public PdaSettings nextRepeat() {
-        return new PdaSettings(radius, muted, repeat.next(), announcements, rules);
+        return new PdaSettings(radius, muted, repeat.next(), announcements, shinyGuard, alerts, rules);
     }
 
     public PdaSettings withAnnouncements(boolean value) {
-        return new PdaSettings(radius, muted, repeat, value, rules);
+        return new PdaSettings(radius, muted, repeat, value, shinyGuard, alerts, rules);
+    }
+
+    public PdaSettings withShinyGuard(boolean value) {
+        return new PdaSettings(radius, muted, repeat, announcements, value, alerts, rules);
+    }
+
+    public PdaSettings withAlerts(List<String> value) {
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, value, rules);
     }
 
     public PdaSettings addRule(PdaRule rule) {
         List<PdaRule> copy = new ArrayList<>(rules);
         copy.add(rule);
-        return new PdaSettings(radius, muted, repeat, announcements, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, alerts, copy);
     }
 
     public PdaSettings updateRule(int index, UnaryOperator<PdaRule> change) {
         List<PdaRule> copy = new ArrayList<>(rules);
         copy.set(index, change.apply(copy.get(index)));
-        return new PdaSettings(radius, muted, repeat, announcements, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, alerts, copy);
     }
 
     public PdaSettings removeRule(int index) {
         List<PdaRule> copy = new ArrayList<>(rules);
         copy.remove(index);
-        return new PdaSettings(radius, muted, repeat, announcements, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, alerts, copy);
     }
 
     /** Swaps the rule at {@code index} with its neighbour {@code index + offset}, if that exists. */
@@ -104,7 +116,7 @@ public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean anno
         PdaRule rule = copy.get(index);
         copy.set(index, copy.get(other));
         copy.set(other, rule);
-        return new PdaSettings(radius, muted, repeat, announcements, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, alerts, copy);
     }
 
     /** The sound for a rule index from an earlier snapshot; the rule may have been deleted since. */

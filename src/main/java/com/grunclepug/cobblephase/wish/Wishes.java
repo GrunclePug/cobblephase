@@ -6,6 +6,7 @@ import com.cobblemon.mod.common.api.events.pokemon.PokemonCapturedEvent;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.pokemon.Pokemon;
 import com.cobblemon.mod.common.pokemon.Species;
+import com.grunclepug.cobblephase.news.NewsLog;
 import com.grunclepug.cobblephase.pda.Pda;
 import com.grunclepug.cobblephase.pda.PdaCatalog;
 import com.grunclepug.cobblephase.pda.PdaSound;
@@ -42,6 +43,8 @@ public final class Wishes {
         Wishboard.Wish wish = new Wishboard.Wish(UUID.randomUUID(), player.getUUID(), player.getGameProfile().getName(),
             species, shiny, note, System.currentTimeMillis());
         board.add(wish);
+        NewsLog.add(player.server, player.getGameProfile().getName() + " is looking for " + (shiny ? "a shiny " : "")
+            + speciesName(species) + (note.isEmpty() ? "" : " (\"" + note + "\")"));
         Component line = prefix()
             .append(player.getDisplayName().copy().withStyle(ChatFormatting.WHITE))
             .append(Component.literal(" is looking for ").withStyle(ChatFormatting.GRAY))
@@ -69,6 +72,8 @@ public final class Wishes {
             if (NOTICED.putIfAbsent(wish.id() + "/" + catcher.getUUID(), now) != null) {
                 continue;
             }
+            NewsLog.addFor(catcher.server, wish.poster(), catcher.getGameProfile().getName() + " caught a "
+                + speciesName(species) + " for your wish");
             catcher.sendSystemMessage(prefix()
                 .append(Component.literal(wish.posterName()).withStyle(ChatFormatting.WHITE))
                 .append(Component.literal(" wished for ").withStyle(ChatFormatting.GRAY))
@@ -85,6 +90,11 @@ public final class Wishes {
                 PdaSound.CHIME.play(poster, null);
             }
         }
+    }
+
+    private static String speciesName(ResourceLocation id) {
+        Species species = PokemonSpecies.getByIdentifier(id);
+        return species == null ? id.getPath() : species.getName();
     }
 
     /** "Shiny Ralts" or "Ralts". */

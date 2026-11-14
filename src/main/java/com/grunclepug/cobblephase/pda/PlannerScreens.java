@@ -9,6 +9,7 @@ import com.cobblemon.mod.common.api.habitats.HabitatPool;
 import com.cobblemon.mod.common.api.pokemon.PokemonSpecies;
 import com.cobblemon.mod.common.item.PokemonItem;
 import com.cobblemon.mod.common.pokemon.Species;
+import com.grunclepug.cobblephase.habitat.HabitatObserver;
 import com.grunclepug.cobblephase.habitat.HabitatPhases;
 import com.grunclepug.cobblephase.habitat.HabitatReminders;
 import java.util.ArrayList;
@@ -68,6 +69,17 @@ final class PlannerScreens {
         }
         menu.back(PdaMenu.Screen.SPECIES);
         remindersButton(menu, 52);
+        observerButton(menu);
+    }
+
+    /** Reports the nearest real habitat block's phase, including random phase orders. */
+    static void observerButton(PdaMenu menu) {
+        menu.set(53, icon(Items.SPYGLASS, text("Nearest habitat block", ChatFormatting.DARK_GREEN), List.of(
+            hint("Reads a nearby habitat's real phase,"), hint("even with a random phase order."),
+            dim("Or right-click the block with the PDA.")), false), right -> {
+                menu.player.closeContainer();
+                HabitatObserver.nearest(menu.player);
+            });
     }
 
     static void reminders(PdaMenu menu) {

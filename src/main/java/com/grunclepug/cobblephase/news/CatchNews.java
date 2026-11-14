@@ -113,6 +113,10 @@ public final class CatchNews {
                 .append(Component.literal("!").withStyle(ChatFormatting.GRAY));
         }
 
+        String name = catcher.getGameProfile().getName();
+        String species = pokemon.getSpecies().getName();
+        NewsLog.add(catcher.server, first && shiny ? name + " caught the server's first " + species + ", and it's shiny"
+            : first ? name + " caught the server's first " + species : name + " caught a shiny " + species);
         for (ServerPlayer player : catcher.server.getPlayerList().getPlayers()) {
             if (Pda.settings(player).announcements()) {
                 player.sendSystemMessage(message);

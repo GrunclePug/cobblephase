@@ -26,6 +26,13 @@ players don't need to install it.
 * **Proximity beeps**: the selected match's sound repeats faster as you get closer.
 * **Needle and results**: the PDA's needle points at the selected match, and holding it lists every match with direction, distance and height.
 * **Addon species**: reads Cobblemon's live species and spawn rarity lists, so datapack and addon Pokémon work too.
+* **Outbreaks**: every hour or two, one species spawns 15 times as often for 20 minutes.
+* **Condition alerts**: get pinged once when it next thunders, rains, clears, turns day, night, dawn or dusk, or a full or new moon rises.
+* **Shiny guard**: your own hits and arrows can't hurt wild shinies (switchable).
+* **Server Pokédex**: what nobody on the server has caught yet, and who caught each species first.
+* **Evolution and EV helpers**: what your party needs to evolve (with a ping when it's ready), and your EVs with what to battle for each stat.
+* **Habitat observer**: read a real habitat block's phase, including random phase orders.
+* **News**: a login summary of what you missed, and a news page in the PDA.
 * **Catch news**: tells everyone online when someone catches a shiny or the server's first of a species.
 * **Server-side only**: vanilla command syntax and vanilla menus, so clients need nothing beyond Cobblemon.
 
@@ -164,6 +171,40 @@ order.
 optional shiny-only flag and a short note typed in chat. When someone else catches a match, they're told who
 wished for it, and the wisher is told who caught it, so you can sort out a trade. Each player can post 9 wishes;
 wishes expire after 14 days, and you can remove your own at any time.
+
+## Outbreaks
+
+Every 60 to 120 minutes while someone is online, one species (common, uncommon or rare, never a legendary,
+mythical, ultra beast or paradox) has an outbreak for 20 minutes: whenever its rarity comes up, it's 15 times as
+likely to be the one that spawns. Players with catch news on get a chat line when it starts and ends, and the PDA
+home screen shows the current outbreak; click it to open the species in the tracker.
+
+## Condition alerts and shiny guard
+
+**Condition alerts** in the PDA menu pings you once when a condition next starts in the overworld: thunderstorm,
+rain, clear weather, dawn, day, dusk, night, full moon or new moon. Times and moon phases use Cobblemon's own
+ranges, so they match spawn conditions.
+
+**Shiny guard** (on by default, toggle on the PDA home screen) cancels damage from your own attacks and projectiles
+to wild shinies, so a stray swing can't kill one. Battles aren't affected.
+
+## Party helpers, Pokédex, news
+
+- **Evolution helper**: pick a party Pokémon to see each of its evolutions, how it's triggered (level up, item,
+  trade, block) and every requirement with ✔ or ✘. **Pin it** to be told once when all of one evolution's
+  requirements are met, which helps with time-, place- or friendship-based evolutions.
+- **EV helper**: a party Pokémon's EVs per stat (out of 252, total out of 510); pick a stat to list the Pokémon that
+  give the most of it, and open any of them in the tracker.
+- **Server Pokédex**: how many species the server has caught, which ones nobody has caught yet, and who caught each
+  first (species caught before the mod was installed show as caught before tracking began).
+- **News**: recent server firsts, shiny catches, wishes and outbreaks, plus notes just for you (someone caught your
+  wish). When you log in, chat summarizes what happened since you left.
+
+## Habitat observer
+
+Right-click a habitat block with the PDA, or use **Nearest habitat block** in the habitat planner, to read that
+habitat's real state: its pool, phase order (simple, fixed random or full random), current phase, when it next
+changes and what it can spawn now. Unlike `/phase`, this is exact for habitats set to a random phase order.
 
 ## Catch news
 

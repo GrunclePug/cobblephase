@@ -12,7 +12,7 @@ import net.minecraft.world.level.saveddata.SavedData;
  * Which species anyone on the server has caught, and who caught each first. Species caught before this was
  * installed are recorded with no catcher (from players' Pokédexes), so they never count as a first.
  */
-final class ServerFirsts extends SavedData {
+public final class ServerFirsts extends SavedData {
     private static final String NAME = "cobblephase_firsts";
     private static final Factory<ServerFirsts> FACTORY = new Factory<>(ServerFirsts::new, ServerFirsts::load, null);
 
@@ -20,7 +20,7 @@ final class ServerFirsts extends SavedData {
     private final Map<String, String> species = new HashMap<>();
     private boolean seeded;
 
-    static ServerFirsts get(MinecraftServer server) {
+    public static ServerFirsts get(MinecraftServer server) {
         return server.overworld().getDataStorage().computeIfAbsent(FACTORY, NAME);
     }
 
@@ -41,6 +41,11 @@ final class ServerFirsts extends SavedData {
         tag.put("species", list);
         tag.putBoolean("seeded", seeded);
         return tag;
+    }
+
+    /** Species id → first catcher's name ("" when caught before tracking began), for the ledger. */
+    public Map<String, String> entries() {
+        return Map.copyOf(species);
     }
 
     boolean seeded() {

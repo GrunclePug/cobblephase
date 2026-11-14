@@ -80,6 +80,7 @@ final class SpeciesPicker {
         }
         if (view.picker == PdaMenu.Picker.PLANNER) {
             PlannerScreens.remindersButton(menu, 52);
+            PlannerScreens.observerButton(menu);
         }
     }
 

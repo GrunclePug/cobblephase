@@ -1,8 +1,14 @@
 package com.grunclepug.cobblephase.pda;
 
 import com.mojang.serialization.Codec;
+import com.cobblemon.mod.common.block.habitat.HabitatBlockEntity;
+import com.grunclepug.cobblephase.habitat.HabitatObserver;
 import com.grunclepug.cobblephase.habitat.HabitatReminders;
+import com.grunclepug.cobblephase.news.NewsLog;
+import com.grunclepug.cobblephase.party.EvolutionWatch;
 import com.grunclepug.cobblephase.tracker.Locator;
+import com.grunclepug.cobblephase.world.ConditionAlerts;
+import com.grunclepug.cobblephase.world.Outbreaks;
 import com.grunclepug.cobblephase.tracker.SpawnIndex;
 import java.util.Objects;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -37,6 +43,8 @@ public final class Pda {
     public static void init() {
         // Attachment types must exist before any player data loads, or their saved data is dropped.
         Objects.requireNonNull(HabitatReminders.REMINDERS);
+        Objects.requireNonNull(EvolutionWatch.PINNED);
+        Objects.requireNonNull(NewsLog.LAST_SEEN);
         // Load the spawn action now so a broken rarity mixin fails at startup rather than on the first spawn.
         try {
             Class.forName("com.cobblemon.mod.common.api.spawning.detail.SingleEntitySpawnAction", false,
@@ -51,6 +59,17 @@ public final class Pda {
             }
             use(serverPlayer);
             return InteractionResultHolder.success(stack);
+        });
+        // With a PDA in hand, a habitat block reports its real phase instead of opening.
+        UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
+            if (PdaItem.is(player.getItemInHand(hand)) && player instanceof ServerPlayer serverPlayer
+                && level.getBlockEntity(hit.getBlockPos()) instanceof HabitatBlockEntity habitat) {
+                if (PdaTracker.claimUse(serverPlayer)) {
+                    HabitatObserver.describe(serverPlayer, habitat);
+                }
+                return InteractionResult.SUCCESS;
+            }
+            return InteractionResult.PASS;
         });
         // Using a compass on a lodestone would rebind it, and the client won't follow up with an item use.
         UseBlockCallback.EVENT.register((player, level, hand, hit) -> {
@@ -69,6 +88,9 @@ public final class Pda {
             ChatPrompt.tick(server);
             HabitatReminders.tick(server);
             Locator.tick(server);
+            Outbreaks.tick(server);
+            ConditionAlerts.tick(server);
+            EvolutionWatch.tick(server);
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             PdaTracker.forget(handler.player);

@@ -13,9 +13,12 @@ import java.util.Map;
 import java.util.Set;
 import com.grunclepug.cobblephase.habitat.HabitatPhases;
 import com.grunclepug.cobblephase.news.CatchNews;
+import com.grunclepug.cobblephase.news.NewsLog;
 import com.grunclepug.cobblephase.pda.Pda;
 import com.grunclepug.cobblephase.tracker.TrackerCommand;
 import com.grunclepug.cobblephase.wish.Wishes;
+import com.grunclepug.cobblephase.world.Outbreaks;
+import com.grunclepug.cobblephase.world.ShinyGuard;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.ChatFormatting;
@@ -44,6 +47,9 @@ public final class Cobblephase implements ModInitializer {
         Pda.init();
         CatchNews.init();
         Wishes.init();
+        Outbreaks.init();
+        ShinyGuard.init();
+        NewsLog.init();
     }
 
     private static void register(CommandDispatcher<CommandSourceStack> dispatcher) {

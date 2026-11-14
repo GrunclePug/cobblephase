@@ -6,7 +6,10 @@ import static com.grunclepug.cobblephase.pda.MenuItems.icon;
 import static com.grunclepug.cobblephase.pda.MenuItems.text;
 
 import com.cobblemon.mod.common.item.PokemonItem;
+import com.cobblemon.mod.common.pokemon.Species;
+import com.grunclepug.cobblephase.habitat.HabitatPhases;
 import com.grunclepug.cobblephase.habitat.HabitatReminders;
+import com.grunclepug.cobblephase.world.Outbreaks;
 import com.grunclepug.cobblephase.wish.Wishboard;
 import java.util.ArrayList;
 import java.util.List;
@@ -80,6 +83,48 @@ final class HomeScreen {
                 menu.view.go(PdaMenu.Screen.RULE);
             });
         }
+        menu.set(31, icon(Items.KNOWLEDGE_BOOK, text("Server Pokédex", ChatFormatting.AQUA), List.of(
+            hint("What nobody has caught yet,"), hint("and who caught each one first")), false),
+            right -> menu.view.go(PdaMenu.Screen.LEDGER));
+        menu.set(32, icon(Items.DRAGON_BREATH, text("Evolution helper", ChatFormatting.LIGHT_PURPLE), List.of(
+            hint("What your party needs to evolve;"), hint("pin one to be told when it's ready")), false), right -> {
+                menu.view.partyEvolution = true;
+                menu.view.go(PdaMenu.Screen.PARTY);
+            });
+        menu.set(33, icon(Items.IRON_CHESTPLATE, text("EV helper", ChatFormatting.LIGHT_PURPLE), List.of(
+            hint("Your party's EVs, and which"), hint("Pokémon to battle for each stat")), false), right -> {
+                menu.view.partyEvolution = false;
+                menu.view.go(PdaMenu.Screen.PARTY);
+            });
+        menu.set(34, icon(Items.MAP, text("News", ChatFormatting.DARK_AQUA), List.of(
+            hint("Recent firsts, shinies, wishes"), hint("and outbreaks")), false),
+            right -> menu.view.go(PdaMenu.Screen.NEWS));
+        int alerts = settings.alerts().size();
+        menu.set(35, icon(Items.CLOCK, text("Condition alerts", ChatFormatting.YELLOW), List.of(
+            hint("Get pinged when it next thunders,"), hint("turns night, a full moon rises..."),
+            dim(alerts + " alert" + (alerts == 1 ? "" : "s") + " set")), alerts > 0),
+            right -> menu.view.go(PdaMenu.Screen.ALERTS));
+        Species outbreak = Outbreaks.current();
+        String left = HabitatPhases.duration(Outbreaks.ticksLeft(player.server));
+        if (outbreak != null) {
+            menu.set(46, icon(PokemonItem.Companion.from(outbreak), Component.literal("Outbreak: ").withStyle(ChatFormatting.GOLD)
+                .append(outbreak.getTranslatedName().withStyle(ChatFormatting.AQUA)), List.of(
+                hint("Spawning " + (int) Outbreaks.MULTIPLIER + "× as often for " + left + " more."),
+                hint("Click: open it in the tracker")), true), right -> {
+                    menu.view.trackerSpecies = outbreak.getResourceIdentifier();
+                    menu.view.trackerBack = PdaMenu.Screen.HOME;
+                    menu.view.go(PdaMenu.Screen.TRACKER);
+                });
+        } else {
+            menu.set(46, icon(Items.GRAY_DYE, text("No outbreak right now", ChatFormatting.GRAY),
+                List.of(dim("The next one starts in about " + left + ".")), false), null);
+        }
+        menu.set(51, icon(settings.shinyGuard() ? Items.SHIELD : Items.IRON_SWORD,
+            text(settings.shinyGuard() ? "Shiny guard: on" : "Shiny guard: off",
+                settings.shinyGuard() ? ChatFormatting.GREEN : ChatFormatting.RED),
+            List.of(hint("Stops your own hits and arrows"), hint("from hurting wild shinies."),
+                hint("Click to turn " + (settings.shinyGuard() ? "off" : "on"))), false),
+            right -> Pda.save(player, Pda.settings(player).withShinyGuard(!Pda.settings(player).shinyGuard())));
         int reminders = HabitatReminders.get(player).size();
         menu.set(29, icon(Items.MOSS_BLOCK, text("Habitat planner", ChatFormatting.DARK_GREEN), List.of(
             hint("Which habitats spawn a Pokémon, and when"),
