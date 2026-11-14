@@ -8,10 +8,13 @@ import java.util.function.UnaryOperator;
 
 /** A player's PDA settings, saved on the player. Rule order is priority order. */
 public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean announcements, boolean shinyGuard,
-                          boolean trainerVisits, List<String> alerts, List<PdaRule> rules) {
+                          boolean trainerVisits, boolean wishPings, String wishSound, List<String> alerts,
+                          List<PdaRule> rules) {
     public static final int MAX_RULES = 27;
+    /** The rule index friends'-wish matches use: after every real rule, with its own sound. */
+    public static final int WISH_RULE = 1000;
     public static final int[] RADII = {32, 64, 96, 128};
-    public static final PdaSettings DEFAULT = new PdaSettings(64, false, Repeat.ALWAYS, true, true, true, List.of(), List.of());
+    public static final PdaSettings DEFAULT = new PdaSettings(64, false, Repeat.ALWAYS, true, true, true, false, PdaSound.CHIME.id, List.of(), List.of());
 
     /** When the selected result's sound repeats, faster the closer it is. */
     public enum Repeat {
@@ -50,6 +53,8 @@ public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean anno
         Codec.BOOL.optionalFieldOf("announcements", true).forGetter(PdaSettings::announcements),
         Codec.BOOL.optionalFieldOf("shiny_guard", true).forGetter(PdaSettings::shinyGuard),
         Codec.BOOL.optionalFieldOf("trainer_visits", true).forGetter(PdaSettings::trainerVisits),
+        Codec.BOOL.optionalFieldOf("wish_pings", false).forGetter(PdaSettings::wishPings),
+        Codec.STRING.optionalFieldOf("wish_sound", PdaSound.CHIME.id).forGetter(PdaSettings::wishSound),
         Codec.STRING.listOf().optionalFieldOf("alerts", List.of()).forGetter(PdaSettings::alerts),
         PdaRule.CODEC.listOf().optionalFieldOf("rules", List.of()).forGetter(PdaSettings::rules)
     ).apply(i, PdaSettings::new));
@@ -66,49 +71,57 @@ public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean anno
                 next = RADII[(i + 1) % RADII.length];
             }
         }
-        return new PdaSettings(next, muted, repeat, announcements, shinyGuard, trainerVisits, alerts, rules);
+        return new PdaSettings(next, muted, repeat, announcements, shinyGuard, trainerVisits, wishPings, wishSound, alerts, rules);
     }
 
     public PdaSettings withMuted(boolean value) {
-        return new PdaSettings(radius, value, repeat, announcements, shinyGuard, trainerVisits, alerts, rules);
+        return new PdaSettings(radius, value, repeat, announcements, shinyGuard, trainerVisits, wishPings, wishSound, alerts, rules);
     }
 
     public PdaSettings nextRepeat() {
-        return new PdaSettings(radius, muted, repeat.next(), announcements, shinyGuard, trainerVisits, alerts, rules);
+        return new PdaSettings(radius, muted, repeat.next(), announcements, shinyGuard, trainerVisits, wishPings, wishSound, alerts, rules);
     }
 
     public PdaSettings withAnnouncements(boolean value) {
-        return new PdaSettings(radius, muted, repeat, value, shinyGuard, trainerVisits, alerts, rules);
+        return new PdaSettings(radius, muted, repeat, value, shinyGuard, trainerVisits, wishPings, wishSound, alerts, rules);
     }
 
     public PdaSettings withShinyGuard(boolean value) {
-        return new PdaSettings(radius, muted, repeat, announcements, value, trainerVisits, alerts, rules);
+        return new PdaSettings(radius, muted, repeat, announcements, value, trainerVisits, wishPings, wishSound, alerts, rules);
     }
 
     public PdaSettings withTrainerVisits(boolean value) {
-        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, value, alerts, rules);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, value, wishPings, wishSound, alerts, rules);
+    }
+
+    public PdaSettings withWishPings(boolean value) {
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, value, wishSound, alerts, rules);
+    }
+
+    public PdaSettings withWishSound(String value) {
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, wishPings, value, alerts, rules);
     }
 
     public PdaSettings withAlerts(List<String> value) {
-        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, value, rules);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, wishPings, wishSound, value, rules);
     }
 
     public PdaSettings addRule(PdaRule rule) {
         List<PdaRule> copy = new ArrayList<>(rules);
         copy.add(rule);
-        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, alerts, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, wishPings, wishSound, alerts, copy);
     }
 
     public PdaSettings updateRule(int index, UnaryOperator<PdaRule> change) {
         List<PdaRule> copy = new ArrayList<>(rules);
         copy.set(index, change.apply(copy.get(index)));
-        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, alerts, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, wishPings, wishSound, alerts, copy);
     }
 
     public PdaSettings removeRule(int index) {
         List<PdaRule> copy = new ArrayList<>(rules);
         copy.remove(index);
-        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, alerts, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, wishPings, wishSound, alerts, copy);
     }
 
     /** Swaps the rule at {@code index} with its neighbour {@code index + offset}, if that exists. */
@@ -121,11 +134,14 @@ public record PdaSettings(int radius, boolean muted, Repeat repeat, boolean anno
         PdaRule rule = copy.get(index);
         copy.set(index, copy.get(other));
         copy.set(other, rule);
-        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, alerts, copy);
+        return new PdaSettings(radius, muted, repeat, announcements, shinyGuard, trainerVisits, wishPings, wishSound, alerts, copy);
     }
 
     /** The sound for a rule index from an earlier snapshot; the rule may have been deleted since. */
     public PdaSound soundFor(int rule) {
+        if (rule == WISH_RULE) {
+            return PdaSound.byId(wishSound);
+        }
         return rule < rules.size() ? PdaSound.byId(rules.get(rule).sound()) : PdaSound.DEFAULT;
     }
 }

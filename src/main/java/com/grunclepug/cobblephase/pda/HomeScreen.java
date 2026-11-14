@@ -65,7 +65,7 @@ final class HomeScreen {
             int distance = (int) Math.round(Math.sqrt(result.entity().distanceToSqr(player)));
             List<Component> lore = List.of(
                 text(distance + " blocks away", ChatFormatting.GRAY),
-                dim("Rule " + (result.rule() + 1)),
+                dim(result.rule() == PdaSettings.WISH_RULE ? "A friend's wish" : "Rule " + (result.rule() + 1)),
                 hint(selected ? "The needle points here" : "Click: point the needle here"));
             menu.set(36 + i, icon(PokemonItem.Companion.from(result.entity().getPokemon().getSpecies()),
                 PdaCatalog.name(result.entity().getPokemon()).withStyle(selected ? ChatFormatting.YELLOW : ChatFormatting.WHITE),

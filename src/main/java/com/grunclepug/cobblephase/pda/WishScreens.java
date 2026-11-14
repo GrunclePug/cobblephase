@@ -76,6 +76,27 @@ final class WishScreens {
                 }
                 view.pick(PdaMenu.Picker.WISH);
             });
+        PdaSettings settings = Pda.settings(player);
+        PdaSound sound = PdaSound.byId(settings.wishSound());
+        menu.set(51, icon(settings.wishPings() ? Items.BELL : Items.GRAY_DYE,
+            toggleTitle("Ping me for friends' wishes", settings.wishPings()), List.of(
+                hint("Like a ping rule: when a wild Pokémon a friend"),
+                hint("wished for is near you, you hear it and the"),
+                hint("PDA tracks it (needs the PDA in your inventory)."),
+                Component.literal("Sound: ").withStyle(ChatFormatting.GRAY)
+                    .append(Component.literal(sound.displayName).withStyle(ChatFormatting.WHITE)),
+                hint("Left-click: turn " + (settings.wishPings() ? "off" : "on")),
+                hint("Right-click: change the sound")), settings.wishPings()), right -> {
+                PdaSettings current = Pda.settings(player);
+                if (right) {
+                    PdaSound[] sounds = PdaSound.values();
+                    PdaSound nextSound = sounds[(PdaSound.byId(current.wishSound()).ordinal() + 1) % sounds.length];
+                    nextSound.play(player, null);
+                    Pda.save(player, current.withWishSound(nextSound.id));
+                } else {
+                    Pda.save(player, current.withWishPings(!current.wishPings()));
+                }
+            });
         if (view.confirmWish != null) {
             menu.beforeOtherClicks(-1, () -> view.confirmWish = null);
         }

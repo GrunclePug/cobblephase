@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import com.grunclepug.cobblephase.wish.Wishboard;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
@@ -183,7 +184,8 @@ public final class PdaTracker {
         state.seen.values().removeIf(tick -> now - tick > SEEN_EXPIRY);
         PdaSettings settings = Pda.settings(player);
         List<Matcher> matchers = state.matchers(settings);
-        if (player.isSpectator() || matchers.isEmpty() || !PdaItem.carried(player)) {
+        Map<ResourceLocation, List<Wishboard.Wish>> wishes = friendsWishes(player, settings);
+        if (player.isSpectator() || (matchers.isEmpty() && wishes.isEmpty()) || !PdaItem.carried(player)) {
             state.results = List.of();
             state.selected = null;
             state.needle = null;
@@ -203,14 +205,21 @@ public final class PdaTracker {
         List<Result> fresh = new ArrayList<>();
         for (PokemonEntity entity : nearby) {
             Pokemon pokemon = entity.getPokemon();
+            int rule = -1;
             for (Matcher matcher : matchers) {
                 if (matcher.matches(entity, pokemon, pokedex)) {
-                    Result result = new Result(entity, matcher.index());
-                    matches.add(result);
-                    if (state.seen.put(entity.getUUID(), now) == null) {
-                        fresh.add(result);
-                    }
+                    rule = matcher.index();
                     break;
+                }
+            }
+            if (rule < 0 && !wishers(wishes, pokemon).isEmpty()) {
+                rule = PdaSettings.WISH_RULE;
+            }
+            if (rule >= 0) {
+                Result result = new Result(entity, rule);
+                matches.add(result);
+                if (state.seen.put(entity.getUUID(), now) == null) {
+                    fresh.add(result);
                 }
             }
         }
@@ -219,7 +228,7 @@ public final class PdaTracker {
             .thenComparingDouble(r -> r.entity().distanceToSqr(player));
         if (!fresh.isEmpty() && !settings.muted()) {
             fresh.sort(byPriority);
-            ping(player, settings, fresh);
+            ping(player, settings, fresh, wishes);
             state.nextBeep = now + BEEP_AFTER_SELECT;
         }
 
@@ -241,11 +250,43 @@ public final class PdaTracker {
         }
     }
 
-    private static void ping(ServerPlayer player, PdaSettings settings, List<Result> fresh) {
+    /** Other players' wishes by species, when this player has wish pings on; empty otherwise. */
+    private static Map<ResourceLocation, List<Wishboard.Wish>> friendsWishes(ServerPlayer player, PdaSettings settings) {
+        if (!settings.wishPings()) {
+            return Map.of();
+        }
+        Map<ResourceLocation, List<Wishboard.Wish>> map = new HashMap<>();
+        for (Wishboard.Wish wish : Wishboard.get(player.server).wishes()) {
+            if (!wish.poster().equals(player.getUUID())) {
+                map.computeIfAbsent(wish.species(), id -> new ArrayList<>()).add(wish);
+            }
+        }
+        return map;
+    }
+
+    /** Names of the players whose wishes this Pokémon satisfies (a shiny-only wish needs a shiny). */
+    private static List<String> wishers(Map<ResourceLocation, List<Wishboard.Wish>> wishes, Pokemon pokemon) {
+        List<String> names = new ArrayList<>();
+        for (Wishboard.Wish wish : wishes.getOrDefault(pokemon.getSpecies().getResourceIdentifier(), List.of())) {
+            if ((!wish.shiny() || pokemon.getShiny()) && !names.contains(wish.posterName())) {
+                names.add(wish.posterName());
+            }
+        }
+        return names;
+    }
+
+    private static void ping(ServerPlayer player, PdaSettings settings, List<Result> fresh,
+                             Map<ResourceLocation, List<Wishboard.Wish>> wishes) {
         Result first = fresh.getFirst();
         settings.soundFor(first.rule()).play(player, first.entity().position());
         for (int i = 0; i < Math.min(MAX_CHAT_LINES, fresh.size()); i++) {
-            player.sendSystemMessage(pingLine(player, fresh.get(i).entity()));
+            Result result = fresh.get(i);
+            MutableComponent line = pingLine(player, result.entity());
+            if (result.rule() == PdaSettings.WISH_RULE) {
+                line.append(Component.literal(" · wished for by " + String.join(", ",
+                    wishers(wishes, result.entity().getPokemon()))).withStyle(ChatFormatting.LIGHT_PURPLE));
+            }
+            player.sendSystemMessage(line);
         }
         if (fresh.size() > MAX_CHAT_LINES) {
             player.sendSystemMessage(Component.literal("[PDA] ").withStyle(ChatFormatting.AQUA)
@@ -254,7 +295,7 @@ public final class PdaTracker {
         }
     }
 
-    private static Component pingLine(ServerPlayer player, PokemonEntity entity) {
+    private static MutableComponent pingLine(ServerPlayer player, PokemonEntity entity) {
         MutableComponent line = Component.literal("[PDA] ").withStyle(ChatFormatting.AQUA)
             .append(PdaCatalog.name(entity.getPokemon()).withStyle(ChatFormatting.WHITE));
         String bucket = entity.getAttached(Pda.SPAWN_BUCKET);
@@ -356,7 +397,7 @@ public final class PdaTracker {
             bar.append(Component.literal("[muted] ").withStyle(ChatFormatting.RED));
         }
         List<Result> live = live(state);
-        if (state.matchers(settings).isEmpty()) {
+        if (state.matchers(settings).isEmpty() && !settings.wishPings()) {
             bar.append(Component.literal("No active ping rules. Right-click to set some up.").withStyle(ChatFormatting.GRAY));
         } else if (live.isEmpty()) {
             bar.append(Component.literal("Scanning... nothing within " + settings.radius() + "m").withStyle(ChatFormatting.GRAY));

@@ -174,6 +174,11 @@ optional shiny-only flag and a short note typed in chat. When someone else catch
 wished for it, and the wisher is told who caught it, so you can sort out a trade. Each player can post 9 wishes;
 wishes expire after 14 days, and you can remove your own at any time.
 
+**Ping me for friends' wishes** (on the wishboard screen) works like an extra PDA rule: while the PDA is in your
+inventory, a nearby wild Pokémon that someone else wished for pings you, with whose wish it is in the chat line, and
+shows up in your results for the needle. Shiny-only wishes only match shinies, and your own wishes don't count.
+Left-click turns it on or off; right-click changes its sound.
+
 ## Outbreaks
 
 Every 60 to 120 minutes while someone is online, one species (common, uncommon or rare, never a legendary,
