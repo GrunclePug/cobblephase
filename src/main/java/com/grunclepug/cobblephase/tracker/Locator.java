@@ -430,7 +430,7 @@ public final class Locator {
     }
 
     /** Solid, harmless ground under {@code feet}, and room for a player with no fluid. */
-    private static boolean safe(ServerLevel level, BlockPos feet) {
+    public static boolean safe(ServerLevel level, BlockPos feet) {
         if (feet.getY() <= level.getMinBuildHeight() || feet.getY() + 1 >= level.getMaxBuildHeight()) {
             return false;
         }

@@ -213,8 +213,11 @@ changes and what it can spawn now. Unlike `/phase`, this is exact for habitats s
 With [Radical Cobblemon Trainers](https://modrinth.com/mod/rctmod) installed, every 20 to 40 minutes of play the
 next trainer in your current RCT series (the one its trainer card shows, e.g. Gym Leader Gardenia) turns up 5 to 10
 blocks from you to battle. If your series has several next trainers, one is picked at random. The trainer is spawned
-by RCT itself, so its rules still apply: it needs room to stand, unique trainers like gym leaders only appear once at a
-time, and RCT's per-player trainer limit counts it. Visits wait while you're in a battle and try again a minute later.
+by RCT itself, so its rules still apply: unique trainers like gym leaders only appear once at a time, and RCT's
+per-player trainer limit counts it. The spot must be dry, solid ground. RCT's server-wide dimension and biome lists
+apply, and so does each trainer's biome blacklist (Gardenia won't visit you in the Nether), but not trainers' biome
+whitelists, since the point is that they come to you. Visits wait while you're in a battle or somewhere they can't
+go, and try again a minute later. The countdown only runs while you're online and carries over between sessions.
 
 The home screen shows your next trainer and roughly when the next visit is; operators can click it to call one now.
 Turn visits off under **Settings**. Without RCT, the feature stays off.

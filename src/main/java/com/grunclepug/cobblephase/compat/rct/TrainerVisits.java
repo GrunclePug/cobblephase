@@ -2,17 +2,22 @@ package com.grunclepug.cobblephase.compat.rct;
 
 import com.cobblemon.mod.common.battles.BattleRegistry;
 import com.gitlab.srcmc.rctmod.api.RCTMod;
+import com.gitlab.srcmc.rctmod.api.config.IServerConfig;
 import com.gitlab.srcmc.rctmod.api.data.pack.TrainerMobData;
 import com.gitlab.srcmc.rctmod.api.data.save.TrainerPlayerData;
 import com.gitlab.srcmc.rctmod.api.service.SeriesManager;
 import com.gitlab.srcmc.rctmod.world.entities.TrainerMob;
+import com.grunclepug.cobblephase.compat.Rct;
 import com.grunclepug.cobblephase.pda.Pda;
 import com.grunclepug.cobblephase.pda.PdaSound;
+import com.grunclepug.cobblephase.tracker.Locator;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -39,19 +44,15 @@ public final class TrainerVisits {
     private static final int POSITION_TRIES = 16;
     private static final RandomSource RANDOM = RandomSource.create();
 
-    /** Per player: ticks of online time until their next visit, and failed tries in a row. */
-    private static final Map<UUID, long[]> SCHEDULE = new HashMap<>();
+    /** Failed tries in a row per player (the countdown itself is saved on the player). */
+    private static final Map<UUID, Integer> FAILURES = new HashMap<>();
 
     private TrainerVisits() {
     }
 
-    public static void forget(ServerPlayer player) {
-        SCHEDULE.remove(player.getUUID());
-    }
-
     public static long ticksUntil(ServerPlayer player) {
-        long[] entry = SCHEDULE.get(player.getUUID());
-        return entry == null ? -1 : Math.max(0, entry[0]);
+        Long left = player.getAttached(Rct.VISIT_COUNTDOWN);
+        return left == null ? -1 : Math.max(0, left);
     }
 
     public static void tick(MinecraftServer server) {
@@ -59,22 +60,22 @@ public final class TrainerVisits {
             return;
         }
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-            long[] entry = SCHEDULE.computeIfAbsent(player.getUUID(), id -> new long[] {gap(), 0});
             if (!Pda.settings(player).trainerVisits()) {
                 continue;
             }
-            entry[0] -= 20;
-            if (entry[0] > 0) {
+            Long stored = player.getAttached(Rct.VISIT_COUNTDOWN);
+            long left = (stored == null ? gap() : stored) - 20;
+            if (left > 0) {
+                player.setAttached(Rct.VISIT_COUNTDOWN, left);
                 continue;
             }
-            if (visit(player)) {
-                entry[0] = gap();
-                entry[1] = 0;
-            } else if (++entry[1] >= MAX_RETRIES) {
-                entry[0] = gap();
-                entry[1] = 0;
+            int failures = FAILURES.getOrDefault(player.getUUID(), 0);
+            if (visit(player) || failures + 1 >= MAX_RETRIES) {
+                FAILURES.remove(player.getUUID());
+                player.setAttached(Rct.VISIT_COUNTDOWN, gap());
             } else {
-                entry[0] = RETRY;
+                FAILURES.put(player.getUUID(), failures + 1);
+                player.setAttached(Rct.VISIT_COUNTDOWN, (long) RETRY);
             }
         }
     }
@@ -85,7 +86,7 @@ public final class TrainerVisits {
             player.sendSystemMessage(Component.literal("[Trainers] No next trainer in your current series.")
                 .withStyle(ChatFormatting.GRAY));
         } else if (visit(player)) {
-            SCHEDULE.put(player.getUUID(), new long[] {gap(), 0});
+            player.setAttached(Rct.VISIT_COUNTDOWN, gap());
         } else {
             player.sendSystemMessage(Component.literal("[Trainers] Couldn't call one now: in a battle, no room nearby,"
                 + " or RCT's trainer limit or uniqueness rule said no.").withStyle(ChatFormatting.GRAY));
@@ -102,11 +103,25 @@ public final class TrainerVisits {
         if (next.isEmpty()) {
             return true; // Nothing to fight (series done or none chosen); wait for the next slot.
         }
-        String trainer = next.get(RANDOM.nextInt(next.size()));
         ServerLevel level = player.serverLevel();
+        // RCT's own location rules: the server's dimension and biome lists, and each trainer's biome blacklist
+        // (Gardenia stays out of the Nether). Trainer biome whitelists are skipped on purpose: visits come to you.
+        Set<String> tags = level.getBiome(player.blockPosition()).tags()
+            .map(tag -> tag.location().getPath()).collect(Collectors.toSet());
+        if (!allowedHere(level, tags)) {
+            return false;
+        }
+        List<String> allowed = next.stream().filter(id -> {
+            TrainerMobData data = RCTMod.getInstance().getTrainerManager().getData(id);
+            return data == null || data.getBiomeTagBlacklist().stream().noneMatch(tags::contains);
+        }).toList();
+        if (allowed.isEmpty()) {
+            return false;
+        }
+        String trainer = allowed.get(RANDOM.nextInt(allowed.size()));
         for (int i = 0; i < POSITION_TRIES; i++) {
             BlockPos pos = position(level, player);
-            if (pos == null) {
+            if (pos == null || !Locator.safe(level, pos)) {
                 continue;
             }
             // Pinned home near here, spawned for this player (keeps RCT's limits), no chance roll.
@@ -121,6 +136,17 @@ public final class TrainerVisits {
             }
         }
         return false;
+    }
+
+    private static boolean allowedHere(ServerLevel level, Set<String> tags) {
+        IServerConfig config = RCTMod.getInstance().getServerConfig();
+        String dimension = level.dimension().location().toString();
+        List<? extends String> whitelist = config.dimensionWhitelist();
+        List<? extends String> biomeWhitelist = config.biomeTagWhitelist();
+        return !config.dimensionBlacklist().contains(dimension)
+            && (whitelist.isEmpty() || whitelist.contains(dimension))
+            && config.biomeTagBlacklist().stream().noneMatch(tags::contains)
+            && (biomeWhitelist.isEmpty() || biomeWhitelist.stream().anyMatch(tags::contains));
     }
 
     /** A standing spot 5–10 blocks away, near the player's height: surface if close to it, else a floor nearby. */

@@ -46,6 +46,7 @@ public final class Pda {
         Objects.requireNonNull(HabitatReminders.REMINDERS);
         Objects.requireNonNull(EvolutionWatch.PINNED);
         Objects.requireNonNull(NewsLog.LAST_SEEN);
+        Objects.requireNonNull(Rct.VISIT_COUNTDOWN);
         // Load the spawn action now so a broken rarity mixin fails at startup rather than on the first spawn.
         try {
             Class.forName("com.cobblemon.mod.common.api.spawning.detail.SingleEntitySpawnAction", false,
@@ -99,7 +100,6 @@ public final class Pda {
             ChatPrompt.forget(handler.player);
             PdaMenu.forget(handler.player);
             Locator.cancel(handler.player.getUUID());
-            Rct.forget(handler.player);
         });
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> Locator.shutdown());
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> HabitatReminders.onJoin(handler.player));

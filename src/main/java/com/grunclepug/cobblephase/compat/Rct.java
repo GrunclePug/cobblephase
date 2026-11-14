@@ -1,8 +1,12 @@
 package com.grunclepug.cobblephase.compat;
 
 import com.grunclepug.cobblephase.compat.rct.TrainerVisits;
+import com.mojang.serialization.Codec;
 import java.util.List;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
+import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -12,6 +16,11 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public final class Rct {
     private static final boolean LOADED = FabricLoader.getInstance().isModLoaded("rctmod");
+
+    /** Online ticks left until a player's next trainer visit; kept across logouts so short sessions add up. */
+    public static final AttachmentType<Long> VISIT_COUNTDOWN = AttachmentRegistry.create(
+        ResourceLocation.fromNamespaceAndPath("cobblephase", "trainer_visit_countdown"),
+        builder -> builder.persistent(Codec.LONG).copyOnDeath());
 
     private Rct() {
     }
@@ -23,12 +32,6 @@ public final class Rct {
     public static void tick(MinecraftServer server) {
         if (LOADED) {
             TrainerVisits.tick(server);
-        }
-    }
-
-    public static void forget(ServerPlayer player) {
-        if (LOADED) {
-            TrainerVisits.forget(player);
         }
     }
 
